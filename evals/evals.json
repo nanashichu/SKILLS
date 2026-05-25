@@ -1,0 +1,97 @@
+{
+  "skill_name": "daily-todo-manager",
+  "version": "6.3",
+  "evals": [
+    {
+      "id": 1,
+      "name": "打卡上班",
+      "prompt": "上班",
+      "expected_behavior": "在 daily/YYYY-MM-DD.md 的 ## 🕰️ 打卡记录 区块记录上班时间，格式为 '上班：HH:MM'",
+      "triggers": ["§0"]
+    },
+    {
+      "id": 2,
+      "name": "生成今日待办",
+      "prompt": "早上好",
+      "expected_behavior": "1. 读取 daily/YYYY-MM-DD.md\n2. 读取 memory/project-tasks-cache.json\n3. 输出今日待办+功能提醒",
+      "triggers": ["§7"]
+    },
+    {
+      "id": 3,
+      "name": "添加未来事件",
+      "prompt": "4月22日要交课程作业",
+      "expected_behavior": "创建 daily/2026-04-22.md，在 ## 📋 今日待办 添加该事件",
+      "triggers": ["§1"]
+    },
+    {
+      "id": 4,
+      "name": "创建新项目",
+      "prompt": "项目：博士大论文\n截止日期：2026-12-31\n优先级：高",
+      "expected_behavior": "在 projects/ 目录创建项目文件，包含元数据和任务列表模板",
+      "triggers": ["§2"]
+    },
+    {
+      "id": 5,
+      "name": "开始任务",
+      "prompt": "现在开始 跑基准回归",
+      "expected_behavior": "1. 记录到 session-context.json\n2. 预估用时（基于历史数据）\n3. 输出时间预测",
+      "triggers": ["§4"]
+    },
+    {
+      "id": 6,
+      "name": "完成任务",
+      "prompt": "完成了",
+      "expected_behavior": "1. 更新 daily 文件时间线\n2. 更新项目文件任务状态\n3. 更新 project-tasks-cache.json",
+      "triggers": ["§5"]
+    },
+    {
+      "id": 7,
+      "name": "每日总结",
+      "prompt": "结束工作",
+      "expected_behavior": "1. 运行跨对话搜索\n2. 统计今日用时\n3. 生成总结报告+经验教训",
+      "triggers": ["§10", "§9"]
+    },
+    {
+      "id": 8,
+      "name": "周报生成",
+      "prompt": "生成周报",
+      "expected_behavior": "读取本周 daily 文件，生成周工作总结",
+      "triggers": ["§12"]
+    },
+    {
+      "id": 9,
+      "name": "打卡暂停",
+      "prompt": "暂停",
+      "expected_behavior": "记录暂停开始时间，计算暂停时长",
+      "triggers": ["§0"]
+    },
+    {
+      "id": 10,
+      "name": "风险检查",
+      "prompt": "检查风险",
+      "expected_behavior": "检查截止风险、效率风险、习惯风险并输出预警",
+      "triggers": ["§11"]
+    },
+    {
+      "id": 11,
+      "name": "高效时段分析",
+      "prompt": "我的效率得分",
+      "expected_behavior": "基于 task-time-history.json 的数据计算效率指标",
+      "triggers": ["§10"]
+    },
+    {
+      "id": 12,
+      "name": "Guard 保护检查",
+      "prompt": "检查 Guard",
+      "expected_behavior": "运行所有已启用的 Guard 检查",
+      "triggers": ["§11"]
+    },
+    {
+      "id": 13,
+      "name": "添加任务到项目",
+      "prompt": "添加任务 写文献综述 到 博士大论文",
+      "expected_behavior": "1. Read 项目文件\n2. Edit 追加到任务列表\n3. 更新缓存",
+      "triggers": ["§3"]
+    }
+  ]
+}
