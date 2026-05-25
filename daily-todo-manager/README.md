@@ -199,6 +199,9 @@ daily-todo-manager/
 │   ├── init_todo_dir.py      # 初始化数据目录
 │   ├── scan_projects.py      # 扫描项目并重建缓存
 │   └── search_recent_sessions.py  # 跨对话搜索用户消息
+├── web/                      # Web 可视化界面
+│   ├── index.html            # 任务管理中心（PWA，支持离线使用）
+│   └── manifest.json         # PWA 配置
 └── evals/
     └── evals.json            # 评估测试用例（13个）
 ```
@@ -409,6 +412,47 @@ python scripts/search_recent_sessions.py --days 7 --transcript-dir /custom/path
 ```
 
 扫描 `$CLAUDE_TRANSCRIPT_DIR` 下所有 JSONL 文件，提取用户消息，按日期分组，自动检测项目关联。
+
+---
+
+## Web 可视化界面
+
+除了在 Claude Code 中用自然语言交互，daily-todo-manager 还提供一个完整的 Web 可视化界面（`web/index.html`）。
+
+### 启动方式
+
+直接用浏览器打开 `web/index.html`，然后选择你的 `$TODO_DIR` 文件夹即可。
+
+```bash
+# Windows
+start web/index.html
+
+# macOS
+open web/index.html
+
+# Linux
+xdg-open web/index.html
+```
+
+**首次使用**：浏览器会弹出文件夹选择框，选择你的 `$TODO_DIR`（即 daily/projects 所在的根目录），之后浏览器会记住这个选择。
+
+### 功能（6 个视图）
+
+| 视图 | 功能 |
+|------|------|
+| 📅 今日 | 今日待办、时间线、打卡记录、日记 |
+| 📊 周视图 | 本周任务概览和日历 |
+| 🗓️ 月视图 | 月度日历视图 |
+| 📁 项目 | 所有项目的进度总览 |
+| 📈 统计 | 工作效率统计图表 |
+| 🍅 番茄钟 | 番茄工作法计时器 |
+
+### 技术特点
+
+- **PWA**：支持添加到主屏幕，离线使用
+- **File System Access API**：直接读写本地 Markdown 文件，与 Claude Code 共享同一份数据
+- **纯前端**：无后端、无数据库，所有数据就是你的 Markdown 文件
+- **响应式**：桌面端和移动端都适配
 
 ---
 

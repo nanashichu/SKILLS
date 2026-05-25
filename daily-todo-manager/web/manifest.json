@@ -1,0 +1,16 @@
+{
+  "name": "每日待办管理",
+  "short_name": "待办管理",
+  "description": "个人日周月待办任务管理系统",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#9ABDF2",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
