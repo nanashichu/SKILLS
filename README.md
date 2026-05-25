@@ -1,511 +1,115 @@
-# daily-todo-manager
+# Claude Code Skills
 
-> 个人日周月待办任务管理系统 — 为 Claude Code 设计的 AI 原生任务管理 Skill
+我自己创建的 Claude Code Skills 集合。
 
-`daily-todo-manager` 是一个运行在 Claude Code 中的任务管理 Skill，通过自然语言交互管理你的每日待办、项目进度、打卡记录和工作总结。它不是传统的独立应用，而是直接嵌入你的 AI 编程助手，让你在写代码、做研究的同时，无缝记录和管理工作。
+## Skills
 
-**核心理念**：任务管理应该零摩擦。你不需要切换到另一个 app，不需要手动填表——和 AI 说话的同时，任务管理就完成了。
-
----
-
-## 目录
-
-- [核心特性](#核心特性)
-- [系统架构](#系统架构)
-- [快速开始](#快速开始)
-- [环境配置](#环境配置)
-- [目录结构](#目录结构)
-- [功能详解](#功能详解)
-  - [§0 打卡记录](#0-打卡记录)
-  - [§1 未来事件](#1-未来事件)
-  - [§2-3 项目管理](#2-3-项目管理)
-  - [§4-5 任务追踪](#4-5-任务追踪)
-  - [§7 每日待办](#7-每日待办)
-  - [§10 每日总结 + 跨对话搜索](#10-每日总结--跨对话搜索)
-  - [§11 风险预警 + Guard](#11-风险预警--guard)
-  - [§12 周报生成](#12-周报生成)
-- [文件格式规范](#文件格式规范)
-- [脚本说明](#脚本说明)
-- [常见问题](#常见问题)
-- [贡献指南](#贡献指南)
-- [许可证](#许可证)
+| Skill | 说明 | 触发词 |
+|-------|------|--------|
+| [daily-todo-manager](./) | 个人日周月待办任务管理系统，13项核心功能：打卡/项目管理/任务追踪/每日总结+跨对话搜索/风险预警+Guard/周报生成 | "早上好"、"开始工作"、"结束工作"、"更新日志"、"生成周报"、"检查风险" |
+| [conversation-refiner](conversation-refiner/) | 历史对话整理与笔记提炼，增量分析→逐日精读→写入Obsidian | "整理对话"、"提炼笔记"、"对话复盘" |
 
 ---
 
-## 核心特性
+## daily-todo-manager
+
+个人日周月待办任务管理系统 — 为 Claude Code 设计的 AI 原生任务管理 Skill。
+
+### 核心理念
+
+任务管理应该零摩擦。你不需要切换到另一个 app，不需要手动填表——和 AI 说话的同时，任务管理就完成了。
 
 ### 13 项核心功能
 
-| # | 功能 | 触发方式 | 说明 |
-|---|------|---------|------|
-| §0 | 打卡记录 | "上班"/"下班"/"暂停"/"继续" | 按上午/下午/晚上分时段记录，自动计算有效时长，防重复写入 |
-| §1 | 未来事件 | "X月X日要XXX" | 快速在指定日期创建待办事项 |
-| §2 | 创建项目 | "项目：[名称]" | 在 projects/ 下创建项目文件，支持元数据（截止/优先级/状态） |
-| §3 | 添加任务 | "添加任务" | 向项目追加新任务，自动更新缓存 |
-| §4 | 开始任务 | "现在开始 [任务]" | 记录开始时间，基于历史数据预测用时和置信区间 |
-| §5 | 完成任务 | "完成了" | 自动计算用时、更新时间线、更新项目进度、记录历史 |
-| §6 | 临时任务 | "临时任务" | 管理不成项目的零散任务，活跃/历史自动拆分 |
-| §7 | 今日待办 | "早上好"/"开始工作" | 生成今日任务概览，自动检查风险，输出激励内容 |
-| §8 | 自动感悟 | "结束工作"时自动触发 | 从对话中提取非工作内容，分类生成生活感悟 |
-| §9 | 经验总结 | "结束工作"时自动触发 | 从已完成任务提炼经验教训，按类别+标记体系展示 |
-| §10 | 每日总结 | "结束工作"/"更新日志" | 跨对话搜索所有会话→时间统计→双向同步daily和projects |
-| §11 | 风险预警 | 自动+手动 | 截止风险/效率风险/习惯中断/缓存过期，多级预警 |
-| §12 | 周报生成 | "生成周报"/周日自动 | 汇总本周所有项目的daily和projects变化 |
+| # | 功能 | 触发方式 |
+|---|------|---------|
+| §0 | 打卡记录 | "上班"/"下班"/"暂停"/"继续" |
+| §1 | 未来事件 | "X月X日要XXX" |
+| §2 | 创建项目 | "项目：[名称]" |
+| §3 | 添加任务 | "添加任务" |
+| §4 | 开始任务+时间预测 | "现在开始 [任务]" |
+| §5 | 完成任务 | "完成了" |
+| §6 | 临时任务 | "临时任务" |
+| §7 | 今日待办 | "早上好"/"开始工作" |
+| §8 | 自动感悟 | "结束工作"时自动触发 |
+| §9 | 经验总结 | "结束工作"时自动触发 |
+| §10 | 每日总结+跨对话搜索 | "结束工作"/"更新日志" |
+| §11 | 风险预警+Guard | 自动+"检查风险" |
+| §12 | 周报生成 | "生成周报"/周日自动 |
 
-### 设计亮点
+### 快速开始
 
-- **AI 原生**：所有交互通过自然语言，不需要学命令、记快捷键
-- **零摩擦**：写代码时顺带就能打卡、完成任务，不打断心流
-- **跨对话搜索**：多个并行 Claude Code 会话的工作自动汇总，不遗漏
-- **缓存驱动**：生成今日待办只需读 2 个文件，不会逐个扫描项目
-- **数据积累**：任务用时、时段效率、习惯数据随时间沉淀，越用越智能
-- **Git 友好**：所有数据都是 Markdown 文本文件，可以纳入版本管理
-- **平台无关**：纯文本+Python 脚本，Windows/macOS/Linux 都能用
-
----
-
-## 系统架构
-
-```
-┌─────────────────────────────────────────────┐
-│              用户 (自然语言)                  │
-└─────────────────┬───────────────────────────┘
-                  │
-                  ▼
-┌─────────────────────────────────────────────┐
-│           Claude Code Agent                  │
-│  ┌───────────────────────────────────────┐  │
-│  │        SKILL.md (Skill 主逻辑)         │  │
-│  │  触发词匹配 → 读取文件 → 增量编辑     │  │
-│  │  → 同步缓存 → 输出结果                │  │
-│  └───────────────────────────────────────┘  │
-└────────┬────────────────────┬───────────────┘
-         │                    │
-         ▼                    ▼
-┌─────────────────┐  ┌──────────────────────┐
-│  $TODO_DIR      │  │  scripts/             │
-│                 │  │                       │
-│  daily/         │  │  scan_projects.py     │
-│    YYYY-MM-DD   │  │    → 重建缓存         │
-│  projects/      │  │                       │
-│    项目名.md    │  │  search_recent_       │
-│  memory/        │  │   sessions.py         │
-│    cache.json   │  │    → 跨对话搜索       │
-│  weekly/        │  │                       │
-│  reviews/       │  │  init_todo_dir.py     │
-│  config.md      │  │    → 初始化目录       │
-└─────────────────┘  └──────────────────────┘
-```
-
-**数据流**：
-
-1. 用户说触发词 → Agent 匹配 SKILL.md 中的功能定义
-2. Agent 读取 `$TODO_DIR` 中的对应文件（daily/项目/缓存）
-3. Agent 用 Edit 增量更新目标区块（不覆盖已有数据）
-4. 跨对话搜索时，先跑 `search_recent_sessions.py` 扫描 JSONL
-5. "结束工作"时自动同步 daily ↔ projects 双向数据
-
----
-
-## 快速开始
-
-### 前提条件
-
-- 已安装 [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview)
-- Python 3.8+（用于运行辅助脚本）
-- （可选）GitHub CLI (`gh`) — 如果需要将任务数据纳入版本管理
-
-### 安装
-
-**方法一：通过 Claude Code Skills 安装（推荐）**
-
-```bash
-# 在 Claude Code 中运行
-/skill-install daily-todo-manager
-```
-
-**方法二：手动安装**
+**前提条件**：Claude Code + Python 3.8+
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/YOUR_USERNAME/daily-todo-manager.git
+git clone https://github.com/nanashichu/SKILLS.git
 
-# 2. 复制到 Claude Code skills 目录
-# Windows
-xcopy daily-todo-manager %USERPROFILE%\.claude\skills\daily-todo-manager\ /E /I
+# 2. 设置环境变量（在 Claude Code settings.json 中）
+# "env": { "TODO_DIR": "/your/path/to/todos" }
 
-# macOS/Linux
-cp -r daily-todo-manager ~/.claude/skills/daily-todo-manager/
-```
-
-**方法三：作为项目级 Skill**
-
-将仓库放到项目目录的 `.claude/skills/daily-todo-manager/` 下。
-
-### 初始化
-
-```bash
-# 1. 设置数据目录环境变量
-# 在 Claude Code 的 settings.json 中添加：
-#   "env": { "TODO_DIR": "/your/path/to/todos" }
-
-# 2. 创建数据目录结构
-export TODO_DIR="/your/path/to/todos"
+# 3. 初始化数据目录
 python scripts/init_todo_dir.py
 
-# 3. （可选）设置跨对话搜索路径
-#   "env": { "CLAUDE_TRANSCRIPT_DIR": "/home/user/.claude/projects" }
+# 4. 在 Claude Code 中说：早上好
 ```
-
-### 第一次使用
-
-在 Claude Code 中说：
-
-```
-早上好
-```
-
-系统会自动：
-1. 检查缓存是否过期
-2. 生成今日待办模板
-3. 显示可用的功能指令
-4. 检查风险预警
-
----
-
-## 环境配置
 
 ### 环境变量
-
-在 Claude Code 的 `settings.json` 中配置：
-
-```json
-{
-  "env": {
-    "TODO_DIR": "G:/你的路径/每日待办/",
-    "CLAUDE_TRANSCRIPT_DIR": "C:/Users/你的用户名/.claude/projects/"
-  }
-}
-```
 
 | 变量 | 必需 | 说明 |
 |------|------|------|
 | `TODO_DIR` | ✅ | 任务数据存储目录 |
-| `CLAUDE_TRANSCRIPT_DIR` | 可选 | Claude Code 对话记录目录，用于跨对话搜索。不设置则默认使用 `~/.claude/projects/` |
-| `PYTHON_BIN` | 可选 | Python 可执行文件路径，默认 `python3` |
+| `CLAUDE_TRANSCRIPT_DIR` | 可选 | 对话记录目录，用于跨对话搜索（默认 `~/.claude/projects/`） |
 
-### 配置文件
+### 设计亮点
 
-首次运行 `init_todo_dir.py` 后，会在 `$TODO_DIR` 下生成 `config.md`，可以自定义：
+- **AI 原生**：自然语言交互，不学命令、不记快捷键
+- **零摩擦**：写代码时顺带打卡、完成任务，不打断心流
+- **跨对话搜索**：多个并行 Claude Code 会话自动汇总
+- **缓存驱动**：生成今日待办只需读 2 个文件
+- **Git 友好**：所有数据都是 Markdown，可版本管理
+- **平台无关**：纯文本+Python，Windows/macOS/Linux 通用
 
-- **固定任务**：每日自动提醒的习惯任务（如"读论文30分钟"）
-- **任务类型关键词**：用于时间预测中的任务分类
-- **风险阈值**：紧急天数、停滞天数、低效天数的自定义值
+### 文件结构
+
+```
+daily-todo-manager (根目录)
+├── SKILL.md              # Skill 主文件
+├── references/           # 参考文档（功能/格式/智能模块/陷阱）
+├── scripts/              # Python 辅助脚本
+│   ├── init_todo_dir.py           # 初始化数据目录
+│   ├── scan_projects.py           # 扫描项目并重建缓存
+│   └── search_recent_sessions.py  # 跨对话搜索
+└── evals/evals.json      # 测试用例
+```
+
+详细文档见 [references/](references/) 目录。
 
 ---
 
-## 目录结构
+## conversation-refiner
 
-### Skill 文件（本仓库）
-
-```
-daily-todo-manager/
-├── SKILL.md                  # Skill 主文件（Claude Code 加载入口）
-├── README.md                 # 本文档
-├── LICENSE                   # MIT 许可证
-├── references/               # 参考文档
-│   ├── features.md           # 13项功能详细实现说明
-│   ├── file-formats.md       # 所有文件格式模板
-│   ├── intelligence.md       # 智能模块（搜索/缓存/预测/预警）
-│   └── pitfalls.md           # 常见错误与预防检查清单
-├── scripts/                  # Python 辅助脚本
-│   ├── init_todo_dir.py      # 初始化数据目录
-│   ├── scan_projects.py      # 扫描项目并重建缓存
-│   └── search_recent_sessions.py  # 跨对话搜索用户消息
-└── evals/
-    └── evals.json            # 评估测试用例（13个）
-```
-
-### 数据文件（$TODO_DIR，由 init_todo_dir.py 创建）
-
-```
-$TODO_DIR/
-├── config.md                 # 系统配置
-├── CLAUDE.md                 # Agent 操作规则（可选）
-├── daily/                    # 每日日志
-│   └── YYYY-MM-DD.md
-├── weekly/                   # 周报存档
-├── projects/                 # 项目文件
-│   ├── YYYY-MM-DD-项目名.md
-│   └── 临时任务.md
-├── reviews/                  # 复盘记录
-└── memory/                   # 运行时数据
-    ├── project-tasks-cache.json  # 项目任务缓存
-    ├── task-time-history.json    # 任务用时历史
-    ├── session-context.json      # 会话上下文
-    └── guard-config.json         # Guard 配置
-```
+历史对话整理与笔记提炼 Skill。详见 [conversation-refiner/README.md](conversation-refiner/README.md)。
 
 ---
 
-## 功能详解
+## 安装
 
-### §0 打卡记录
-
-**触发词**：`上班` / `下班` / `暂停` / `继续`
-
-按上午/下午/晚上三个时段记录打卡时间，自动计算有效时长（扣除暂停时间）。
-
-```
-## 🕰️ 打卡记录
-
-### 上午
-- 上班：09:00
-- 下班：12:00
-- 暂停：10:30-10:45（15分钟）
-- 有效时长：2小时45分钟
-
-**今日总工作时长**：X小时X分钟
-```
-
-**防重复机制**：写入前检查已有时段区块，同时段更新、不同时段追加，杜绝重复。
-
-### §1 未来事件
-
-**触发词**：`X月X日要XXX`
-
-快速在指定日期创建待办事项。系统自动解析日期（默认当年），如果该日期的 daily 文件不存在则自动创建。
-
-```
-用户：4月22日要交课程作业
-系统：已创建 daily/2026-04-22.md，添加待办：交课程作业
-```
-
-### §2-3 项目管理
-
-**创建项目**：`项目：博士大论文 截止日期：2026-12-31 优先级：高`
-
-在 `projects/` 下创建项目文件，自动填充元数据模板。
-
-**添加任务**：`添加任务 写文献综述 到 博士大论文`
-
-向项目任务列表追加新任务，同时更新缓存。
-
-项目文件支持声明**子项目**关系（在元数据中加 `**子项目**：子项目1, 子项目2`），扫描时自动关联。
-
-### §4-5 任务追踪
-
-**开始任务**：`现在开始 跑基准回归`
-
-1. 记录到 `session-context.json`
-2. 从 `task-time-history.json` 读取同类任务历史用时
-3. 输出时间预测：`预计用时：1.5小时（80%置信区间：1.2-2.0小时）`
-
-**完成任务**：`完成了`
-
-1. 计算实际用时
-2. 写入每日时间线和已完成列表
-3. 更新项目文件的任务状态、进度、项目日志
-4. 写入 `task-time-history.json` 供将来预测使用
-
-### §7 每日待办
-
-**触发词**：`早上好` / `开始工作` / `开工`
-
-输出示例：
-
-```
-🌅 早上好！今天是 2026年05月25日 周一
-
-📋 今日待办提醒
-
-⚠️ 紧急任务（3天内）：
-- [博士大论文] - 修改第四章（截止：05-27，还剩2天）
-
-📌 今日重点：
-- [第二篇实证] - 跑主回归
-- [公众号] - 写AI工作流文章
-
-✅ 已完成：0 个
-⏳ 待办：5 个
-
-💡 今日可用功能
-• "上班/下班" — 打卡记录
-• "现在开始 [任务]" — 开始任务+时间预测
-• "完成了" — 完成任务
-• "结束工作" — 生成今日总结
-```
-
-### §10 每日总结 + 跨对话搜索
-
-**触发词**：`结束工作` / `更新日志`
-
-这是系统最核心的功能。执行流程：
-
-1. **跨对话搜索**：运行 `search_recent_sessions.py` 扫描所有 Claude Code 会话的 JSONL 文件，提取今日用户消息
-2. **去重合并**：与当前已有时间线合并，不重复添加
-3. **双向同步**：工作内容同时写入 daily 和 projects
-4. **自动触发 §8+§9**：生成生活感悟和经验教训
-
-**为什么必须跑跨对话搜索？**
-Claude Code 可以同时开多个窗口/会话。如果只凭当前会话判断"今天做了什么"，必然会遗漏并行会话中的工作。脚本是唯一可靠的数据源。
-
-### §11 风险预警 + Guard
-
-**自动触发**：每日首次对话 / 开始工作时
-
-**手动触发**：`检查风险`
-
-四级预警体系：
-
-| 级别 | 条件 | 标识 |
-|------|------|------|
-| 极紧急 | 截止日期 = 今天 | 🚨 |
-| 紧急 | 截止 ≤ 1天 | ⚠️ |
-| 提醒 | 截止 ≤ 3天 | 📌 |
-| 逾期 | 截止 < 今天 | 🔴 |
-
-Guard 系统（`memory/guard-config.json` 中配置）：
-
-- **no_overdue (Critical)**：检查是否有逾期任务
-- **efficiency_floor (Warning)**：连续低效天数超阈值时警告
-- **habit_continuity (Warning)**：习惯任务中断时提醒
-
-### §12 周报生成
-
-**自动触发**：每周日 21:00
-
-**手动触发**：`生成周报`
-
-自动汇总本周所有 daily/*.md 和 projects/*.md 的变化，生成结构化周报。
-
----
-
-## 文件格式规范
-
-### 每日日志区块顺序（严格固定）
-
-```
-1. 🕰️ 打卡记录
-2. 🕐 时间线记录
-3. 📝 经验教训（AI生成）
-4. 💭 今日感悟（AI提取）
-5. 📋 今日待办
-6. ✅ 今日已完成
-7. 📋 明日待办
-8. 📓 今日日记（用户手写，AI不碰）
-```
-
-### 日志详细程度标准（五要素）
-
-每条日志必须包含：**目的 + 对象 + 操作 + 数据/文件 + 结果**
-
-```
-✅ 正确示例：
-15:00-16:00 [第二篇实证] - 论文§5.2 H2（数智化→缓解融资约束→降低尾部风险）。
-回归：基准DiD基础上加入SA×Digital×Post三重交互项。
-数据：3src_mech.dta。代码：05_机制检验.do §3.3。
-结果：SA×Digital×Post系数=-0.032, t=-2.15, 5%显著，支持融资约束渠道。
-
-❌ 错误示例：
-跑机制检验  ← 缺假设/设定/结果
-```
-
-完整格式规范见 [references/file-formats.md](references/file-formats.md)。
-
----
-
-## 脚本说明
-
-### `init_todo_dir.py` — 初始化数据目录
+将 skill 文件夹复制到 Claude Code 的 skills 目录下：
 
 ```bash
-python scripts/init_todo_dir.py                      # 使用 $TODO_DIR
-python scripts/init_todo_dir.py --todo-dir ~/mytodos # 指定目录
+# Windows
+cp -r <skill-name> "%USERPROFILE%\.claude\skills\"
+
+# macOS/Linux
+cp -r <skill-name> ~/.claude/skills/
 ```
 
-创建目录结构、默认配置文件、Guard 配置、临时任务文件。
-
-### `scan_projects.py` — 重建项目缓存
-
-```bash
-python scripts/scan_projects.py --todo-dir $TODO_DIR
-```
-
-扫描 `projects/*.md` 所有文件，提取元数据、进度、未完成任务，写入 `memory/project-tasks-cache.json`。Agent 生成今日待办时只读这个缓存，不逐个扫描项目文件。
-
-### `search_recent_sessions.py` — 跨对话搜索
-
-```bash
-python scripts/search_recent_sessions.py --days 7                    # 最近7天
-python scripts/search_recent_sessions.py --today                     # 只搜今天
-python scripts/search_recent_sessions.py --yesterday                 # 只搜昨天
-python scripts/search_recent_sessions.py --from 2026-05-20 --to 2026-05-25
-python scripts/search_recent_sessions.py --days 7 --json             # JSON输出
-python scripts/search_recent_sessions.py --days 7 --transcript-dir /custom/path
-```
-
-扫描 `$CLAUDE_TRANSCRIPT_DIR` 下所有 JSONL 文件，提取用户消息，按日期分组，自动检测项目关联。过滤系统消息、skill 加载等噪音。
-
 ---
 
-## 常见问题
+## 约定
 
-### Q: 和 Todoist / Notion / 飞书任务有什么区别？
-
-daily-todo-manager 不是独立应用，它嵌入在你的 AI 工作流中。你不需要切换窗口去记录——你在和 Claude Code 讨论代码时，顺带说一句"完成了"，任务就标记完成，时间线就记录好了。**零额外操作成本**。
-
-### Q: 数据安全吗？会不会丢失？
-
-所有数据都是本地 Markdown 文件。建议将 `$TODO_DIR` 纳入 Git 版本管理或云同步（OneDrive/iCloud），这样既有历史回溯，又不怕丢失。
-
-### Q: 跨对话搜索是怎么工作的？
-
-Claude Code 把所有对话记录成 JSONL 文件。`search_recent_sessions.py` 扫描这些文件，提取你的用户消息，按日期和关键词归类。这样即使你在三个不同窗口里工作，"结束工作"时都能汇总到。
-
-### Q: 能和其他人协作吗？
-
-当前版本是个人使用的。不过所有数据都是 Markdown，你可以把 `projects/` 目录放到共享文件夹或 Git 仓库中实现团队协作。但 AI Agent 的操作目前只绑定你的 Claude Code 会话。
-
-### Q: 支持哪些平台？
-
-Windows / macOS / Linux 都支持。Skill 本身是纯文本（Markdown），辅助脚本是 Python 3.8+。
-
-### Q: 可以和飞书/企业微信集成吗？
-
-本仓库是核心 Skill，不含外部集成。集成功能（飞书同步、日历联动等）可以作为额外的 Skill 或 hook 脚本添加。
-
-### Q: 如何自定义任务类型的激励内容？
-
-在 `$TODO_DIR/config.md` 中添加你的任务类型关键词。激励风格可以在 SKILL.md 中修改。
-
----
-
-## 贡献指南
-
-欢迎提交 Issue 和 PR。
-
-### 贡献方向
-
-- 🐛 **Bug 修复**：如果你发现日志格式错误、跨对话搜索遗漏等问题
-- ✨ **新功能**：新的 Guard 规则、新的报告格式、新的数据可视化
-- 📝 **文档改进**：补充使用场景、添加多语言支持
-- 🔧 **平台适配**：改进 Windows 兼容性、添加 macOS/Linux 特殊路径处理
-
-### 开发规范
-
-- Skill 逻辑在 `SKILL.md` 中，遵循 Claude Code Skill 规范
-- Python 脚本保持单文件、无外部依赖（标准库 only）
-- 新增功能先在 `references/` 中补充文档，再修改 SKILL.md
-- 测试用例在 `evals/evals.json` 中添加
-
----
-
-## 许可证
-
-[MIT License](LICENSE)
-
----
-
-**版本**：v6.3
-**最后更新**：2026-05-25
+- 每个 skill 包含 `SKILL.md`（必须）和 `references/`（可选）
+- `SKILL.md` 定义触发词、流程、文件路径
+- `references/` 放详细规则、模板等参考文件
+- root 级别的文件属于 daily-todo-manager，其他 skill 放在各自子目录下
