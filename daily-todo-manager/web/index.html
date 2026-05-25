@@ -1909,15 +1909,24 @@
         dirHandle = await window.showDirectoryPicker();
         console.log('Got dirHandle:', dirHandle.name);
 
-        // Check if this is the correct root folder by looking for expected subfolders
+        // Auto-create required subdirectories if missing (first-time user)
         try {
           await dirHandle.getDirectoryHandle('projects');
+        } catch (e) {
+          await dirHandle.getDirectoryHandle('projects', { create: true });
+          console.log('Created projects/ directory');
+        }
+        try {
           await dirHandle.getDirectoryHandle('daily');
         } catch (e) {
-          // Missing expected folders - likely selected wrong folder
-          showToast('error', '请选择「每日待办」根文件夹，不是 projects 或 daily 子文件夹');
-          dirHandle = null;
-          return;
+          await dirHandle.getDirectoryHandle('daily', { create: true });
+          console.log('Created daily/ directory');
+        }
+        try {
+          await dirHandle.getDirectoryHandle('memory');
+        } catch (e) {
+          await dirHandle.getDirectoryHandle('memory', { create: true });
+          console.log('Created memory/ directory');
         }
 
         // Save to IndexedDB for persistence across refreshes
