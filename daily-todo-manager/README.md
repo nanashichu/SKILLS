@@ -109,44 +109,31 @@
 ### 安装
 
 ```bash
-# 1. 克隆仓库
 git clone https://github.com/nanashichu/SKILLS.git
-
-# 2. 复制到 Claude Code skills 目录
-# Windows
-cp -r SKILLS/daily-todo-manager "%USERPROFILE%\.claude\skills\daily-todo-manager\"
-
-# macOS/Linux
 cp -r SKILLS/daily-todo-manager ~/.claude/skills/daily-todo-manager/
 ```
 
-### 初始化
+### 使用（Claude Code + Web 共用一份数据）
 
-```bash
-# 1. 设置环境变量（在 Claude Code settings.json 中）
-# "env": { "TODO_DIR": "/your/path/to/todos" }
+**第一步：在 Claude Code 中初始化**
 
-# 2. 创建数据目录结构
-export TODO_DIR="/your/path/to/todos"
-python scripts/init_todo_dir.py
+在 `settings.json` 中设好 `TODO_DIR`（指向一个空文件夹即可）：
 
-# 3. （可选）设置跨对话搜索路径
-# "env": { "CLAUDE_TRANSCRIPT_DIR": "/home/user/.claude/projects" }
+```json
+{ "env": { "TODO_DIR": "G:/我的待办数据/" } }
 ```
 
-### 第一次使用
-
-在 Claude Code 中说：
+然后在 Claude Code 中说：
 
 ```
 早上好
 ```
 
-系统会自动：
-1. 检查缓存是否过期
-2. 生成今日待办模板
-3. 显示可用的功能指令
-4. 检查风险预警
+系统会自动在 `TODO_DIR` 下创建 `daily/`、`projects/`、`memory/` 等目录。
+
+**第二步：打开 Web 界面**
+
+用浏览器打开 `web/index.html`，选择刚才那个 `TODO_DIR` 文件夹——所有 Claude Code 里创建的任务、打卡、项目进度都会在网页上可视化展示。反过来，网页上的修改也会反映到 Claude Code 中，两边读写同一组 Markdown 文件。
 
 ---
 
