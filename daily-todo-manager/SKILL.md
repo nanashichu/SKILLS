@@ -1,6 +1,18 @@
 ---
 name: daily-todo-manager
-description: 个人日周月待办任务管理系统 v6.3。触发词："开始工作""早上好""结束工作""更新日志""生成周报""X月X日要XXX""检查风险"等。支持13项核心功能：项目创建/任务管理/打卡记录/每日总结+跨对话搜索/风险预警+Guard/周报生成等。管理 $TODO_DIR 下的所有任务文件。不适用于：非待办类任务、其他目录管理。
+description: 个人日周月待办任务管理系统。13项核心功能：打卡/项目管理/任务追踪/每日总结+跨对话搜索/风险预警+Guard/周报生成。附带 Web 可视化界面（PWA）和 3 个 Python 辅助脚本。Claude Code 自然语言交互 + 浏览器可视化双入口，共享同一组 Markdown 数据文件。
+version: 6.3.0
+author: nanashichu
+license: MIT
+homepage: https://github.com/nanashichu/SKILLS
+tags:
+  - productivity
+  - task-management
+  - chinese
+  - todo
+  - pomodoro
+  - pwa
+  - markdown
 ---
 
 # 日周月待办联动管理系统 v6.3
