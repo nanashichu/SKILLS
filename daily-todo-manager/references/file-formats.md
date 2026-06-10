@@ -1,6 +1,4 @@
-# 文件格式规范 (v6.3)
-
-所有文件位于 `$TODO_DIR` 目录下。
+# 文件格式规范 (v6.2)
 
 ---
 
@@ -114,6 +112,10 @@
 - 已完成：X
 - 进度：XX%
 
+## 💡 知识点思考
+
+（用户手写区块，AI不得修改、删除或添加内容）
+
 ## 任务列表
 - [✅ YYYY-MM-DD] 任务名称
 - [ ] 任务名称
@@ -151,37 +153,12 @@
 
 ---
 
-## 配置文件格式（config.md）
-
-位于 `$TODO_DIR/config.md`，用于自定义系统行为：
-
-```markdown
-# 配置
-
-## 固定任务
-- 每日习惯任务1
-- 每日习惯任务2
-
-## 任务类型关键词
-- 实证研究：回归、面板、Stata、数据、基准回归、DiD
-- 编程开发：代码、开发、调试、部署
-- 论文写作：写作、撰写、修改、综述
-- 会议沟通：会议、交流、讨论、汇报
-
-## 风险阈值
-- 紧急截止天数：3
-- 项目停滞警告天数：5
-- 低效连续天数：3
-```
-
----
-
 ## 缓存文件格式（memory/project-tasks-cache.json）
 
 ```json
 {
   "version": "1.0",
-  "lastUpdated": "2026-05-25",
+  "lastUpdated": "2026-05-21",
   "projects": {
     "项目名": {
       "file": "YYYY-MM-DD-项目名.md",
@@ -192,50 +169,11 @@
       "incompleteTasks": ["任务1", "任务2"]
     }
   },
-  "fixedTasks": ["习惯任务1", "习惯任务2"]
+  "fixedTasks": ["和杨老师交流"]
 }
 ```
 
 ---
 
-## Guard 配置文件（memory/guard-config.json）
-
-```json
-{
-  "guards": [
-    {
-      "id": "no_overdue",
-      "name": "无逾期任务",
-      "level": "critical",
-      "check": "所有项目 deadline > today 或 已完成",
-      "action": "列出所有逾期任务，要求用户确认或重新安排"
-    },
-    {
-      "id": "efficiency_floor",
-      "name": "效率下限",
-      "level": "warning",
-      "check": "连续3天完成率 ≥ 日均50%",
-      "action": "提示效率下降，建议调整任务量或检查时间分配"
-    },
-    {
-      "id": "habit_continuity",
-      "name": "习惯连续性",
-      "level": "warning",
-      "check": "fixedTasks 中的任务间隔 ≤ 2天",
-      "action": "提醒恢复习惯任务"
-    },
-    {
-      "id": "urgent_priority",
-      "name": "紧急优先",
-      "level": "warning",
-      "check": "3天内截止的任务排在待办列表最前面",
-      "action": "自动将紧急任务置顶"
-    }
-  ]
-}
-```
-
----
-
-**最后更新：** 2026-05-25
-**版本：** v6.3
+**最后更新：** 2026-05-21
+**版本：** v6.2

@@ -1,199 +1,189 @@
 #!/usr/bin/env python3
 """
-扫描 projects/*.md 所有项目文件，提取元数据和未完成任务，写入缓存。
+扫描所有项目文件，生成 project-tasks-cache.json
 
-用法:
-  python scan_projects.py                    # 使用默认 $TODO_DIR
-  python scan_projects.py --todo-dir /path   # 指定 TODO 目录
+用法: python scan_projects.py [--output <path>]
 
-缓存位置: $TODO_DIR/memory/project-tasks-cache.json
+默认输出到 G:/【20260401】每日待办/memory/project-tasks-cache.json
 """
-import json, os, re, sys, argparse
-from datetime import date
+
+import json, os, re, sys
+from datetime import datetime
+from pathlib import Path
+
+PROJECTS_DIR = Path(r"G:\【20260401】每日待办\projects")
+DEFAULT_OUTPUT = Path(r"G:\【20260401】每日待办\memory\project-tasks-cache.json")
+
+# 父项目 → 子项目列表（按文件名关键词）
+PARENT_CHILD_MAP = {
+    "博士大论文": ["第一篇实证", "第二篇实证"],
+}
 
 
-def get_default_todo_dir():
-    todo_dir = os.environ.get("TODO_DIR", "")
-    if not todo_dir:
-        print("错误: 请设置 TODO_DIR 环境变量，或用 --todo-dir 指定路径", file=sys.stderr)
-        sys.exit(1)
-    return todo_dir
+def parse_project_file(filepath: Path) -> dict | None:
+    """解析单个项目文件，返回项目数据或 None"""
+    try:
+        content = filepath.read_text(encoding="utf-8")
+    except Exception as e:
+        print(f"  [WARN] 无法读取 {filepath.name}: {e}", file=sys.stderr)
+        return None
 
+    lines = content.split("\n")
 
-def parse_meta(lines: list[str]) -> dict:
-    """从文件头部提取 **key**：value 元数据"""
-    meta = {"deadline": None, "priority": "中", "status": "活跃", "progress": "0%"}
-    for line in lines:
-        m = re.match(r"\*\*(.+?)\*\*[：:]\s*(.+)", line)
-        if not m:
-            continue
-        k, v = m.group(1).strip(), m.group(2).strip()
-        if "截止" in k:
-            meta["deadline"] = None if v in ("待定", "无", "") else v
-        elif "优先" in k:
-            meta["priority"] = v
-        elif "状态" in k:
-            meta["status"] = v
-    return meta
-
-
-def parse_progress(lines: list[str]) -> str:
-    """提取进度百分比"""
-    for line in lines:
-        m = re.search(r"进度[：:]\s*(\d+%?)", line)
+    # 项目名：第一行 # 项目：XXX
+    name = None
+    for line in lines[:3]:
+        m = re.match(r"^#\s*项目[：:]\s*(.+)$", line)
         if m:
-            return m.group(1)
-    return "0%"
+            name = m.group(1).strip()
+            break
+    if not name:
+        # 从文件名推导
+        stem = filepath.stem
+        name = re.sub(r"^\d{4}-\d{2}-\d{2}-", "", stem)
 
-
-def parse_parent_map(lines: list[str]) -> dict:
-    """从文件头部提取父子项目映射"""
-    for line in lines:
-        m = re.match(r"\*\*子项目\*\*[：:]\s*(.+)", line)
-        if m:
-            return {child.strip(): True for child in m.group(1).split(",")}
-    return {}
-
-
-def extract_tasks(lines: list[str]) -> list[str]:
-    """从任务列表区块提取未完成任务"""
-    tasks = []
-    in_section = False
-    for line in lines:
-        if re.match(r"^##\s+(任务列表|🟡\s+活跃临时任务)", line):
-            in_section = True
-            continue
-        if in_section and re.match(r"^##\s+", line):
-            in_section = False
-            continue
-        if in_section:
-            m = re.match(r"^-\s*\[ \]\s*(.+)", line)
+    # 元数据：**字段**：值 — 必须锚定到行首的 ** 前缀，避免匹配正文中的子串
+    priority = "中"
+    status = "活跃"
+    deadline = None
+    for line in lines[:20]:
+        stripped = line.strip()
+        # 优先级
+        if re.match(r"\*\*优先级\*\*[：:]", stripped):
+            m = re.search(r"[高中低]", stripped)
             if m:
-                task = m.group(1).strip()
-                if task and len(task) > 2:
-                    tasks.append(task)
-    return tasks
+                priority = m.group()
+        # 状态
+        elif re.match(r"\*\*状态\*\*[：:]", stripped):
+            m = re.search(r"\*\*状态\*\*[：:]\s*(.+)$", stripped)
+            if m:
+                val = m.group(1).strip().rstrip("*")
+                if len(val) < 20:  # 防污染：状态值应该很短
+                    status = val
+        # 截止日期
+        elif re.match(r"\*\*截止日期\*\*[：:]", stripped):
+            m = re.search(r"\*\*截止日期\*\*[：:]\s*(.+)$", stripped)
+            if m:
+                d = m.group(1).strip()
+                if d not in ("待定", "无", ""):
+                    deadline = d
 
+    # 解析任务列表
+    incomplete_tasks = []
+    progress_str = "0%"
+    in_task_section = False
+    in_progress_section = False
 
-def extract_temp_tasks(lines: list[str]) -> list[str]:
-    """从临时任务文件的活跃临时任务区块中提取"""
-    tasks = []
-    in_active = False
     for line in lines:
-        if re.match(r"^##\s+🟡\s+活跃临时任务", line):
-            in_active = True
+        if line.startswith("## 📊 项目进度") or line.startswith("## 项目进度"):
+            in_progress_section = True
+            in_task_section = False
             continue
-        if in_active and re.match(r"^##\s+", line):
-            in_active = False
+        if line.startswith("## 任务列表") or line.startswith("## 📋 任务列表"):
+            in_task_section = True
+            in_progress_section = False
             continue
-        if in_active:
-            m = re.match(r"^-\s*\[ \]\s*(.+)", line)
+        if line.startswith("##") and not line.startswith("###"):
+            in_task_section = False
+            in_progress_section = False
+
+        if in_progress_section:
+            m = re.search(r"进度[：:]\s*(\d+)%", line)
             if m:
-                task = m.group(1).strip()
-                if task and len(task) > 2:
-                    tasks.append(task)
-    return tasks
+                progress_str = f"{m.group(1)}%"
 
-
-def scan(todo_dir: str):
-    projects_dir = os.path.join(todo_dir, "projects")
-    cache_dir = os.path.join(todo_dir, "memory")
-    cache_path = os.path.join(cache_dir, "project-tasks-cache.json")
-
-    if not os.path.isdir(projects_dir):
-        print(f"错误: projects 目录不存在: {projects_dir}", file=sys.stderr)
-        sys.exit(1)
-
-    results = {}
-    parent_map = {}
-
-    for fname in sorted(os.listdir(projects_dir)):
-        if not fname.endswith(".md"):
-            continue
-        fpath = os.path.join(projects_dir, fname)
-        with open(fpath, encoding="utf-8") as f:
-            lines = f.readlines()
-
-        # 项目名：取 # 项目：XXX 或从文件名推导
-        name = None
-        for line in lines[:5]:
-            m = re.match(r"^#\s+项目[：:]\s*(.+)", line)
+        if in_task_section:
+            # 匹配 - [ ] 或 - [✅] 或 - [x]
+            m = re.match(r"-\s*\[([\s✅xX])\]\s*(.+)", line)
             if m:
-                name = m.group(1).strip()
-                break
-        if not name:
-            name = fname.replace(".md", "")
+                checkbox = m.group(1).strip()
+                task_text = m.group(2).strip()
+                # 清理日期后缀
+                task_text = re.sub(r"\s*✅\s*\d{4}-\d{2}-\d{2}.*$", "", task_text)
+                if not checkbox:  # [ ] → 未完成
+                    incomplete_tasks.append(task_text)
 
-        meta = parse_meta(lines)
-        progress = parse_progress(lines)
+    # 判断是否为父项目
+    is_parent = False
+    child_projects = []
+    for parent_key, children in PARENT_CHILD_MAP.items():
+        if parent_key in name:
+            is_parent = True
+            child_projects = children[:]
 
-        # 检查子项目声明
-        children = parse_parent_map(lines)
-        if children:
-            parent_map[name] = list(children.keys())
+    # 去重 (有些任务文本含冗余)
+    seen = set()
+    unique_tasks = []
+    for t in incomplete_tasks:
+        key = t.strip()[:60]
+        if key not in seen:
+            seen.add(key)
+            unique_tasks.append(t)
 
-        if fname == "临时任务.md":
-            tasks = extract_temp_tasks(lines)
-        else:
-            tasks = extract_tasks(lines)
-
-        results[name] = {
-            "file": fname,
-            "priority": meta["priority"],
-            "status": meta["status"],
-            "deadline": meta["deadline"],
-            "progress": progress,
-            "incompleteTasks": tasks,
-        }
-
-    # 标记父子关系
-    for parent, children in parent_map.items():
-        if parent in results:
-            results[parent]["isParent"] = True
-            results[parent]["childProjects"] = children
-
-    # 读取 config.md 获取 fixedTasks
-    fixed_tasks = []
-    config_path = os.path.join(todo_dir, "config.md")
-    if os.path.exists(config_path):
-        with open(config_path, encoding="utf-8") as f:
-            in_fixed = False
-            for line in f:
-                if line.startswith("## 固定任务") or line.startswith("## 每日习惯"):
-                    in_fixed = True
-                    continue
-                if in_fixed and line.startswith("##"):
-                    in_fixed = False
-                    continue
-                if in_fixed:
-                    m = re.match(r"^-\s*(.+)", line)
-                    if m:
-                        fixed_tasks.append(m.group(1).strip())
-
-    cache = {
-        "version": "1.0",
-        "lastUpdated": date.today().isoformat(),
-        "projects": results,
-        "fixedTasks": fixed_tasks,
+    return {
+        "file": filepath.name,
+        "priority": priority,
+        "status": status,
+        "deadline": deadline,
+        "progress": progress_str,
+        "incompleteTasks": unique_tasks,
+        "isParent": is_parent,
+        "childProjects": child_projects if is_parent else None,
     }
 
-    os.makedirs(cache_dir, exist_ok=True)
-    with open(cache_path, "w", encoding="utf-8") as f:
-        json.dump(cache, f, ensure_ascii=False, indent=2)
-        f.write("\n")
 
-    total_tasks = sum(len(p["incompleteTasks"]) for p in results.values())
-    print(f"扫描 {len(results)} 个项目，发现 {total_tasks} 个未完成任务")
-    print(f"缓存已写入 {cache_path}")
+def scan_all() -> dict:
+    """扫描所有项目文件，返回完整缓存数据"""
+    if not PROJECTS_DIR.exists():
+        print(f"项目目录不存在: {PROJECTS_DIR}", file=sys.stderr)
+        return {"version": "1.0", "lastUpdated": datetime.now().strftime("%Y-%m-%d"),
+                "projects": {}, "fixedTasks": []}
+
+    projects = {}
+    for f in sorted(PROJECTS_DIR.glob("*.md")):
+        result = parse_project_file(f)
+        if result is None:
+            continue
+        name = f.stem
+        name = re.sub(r"^\d{4}-\d{2}-\d{2}-", "", name)
+        projects[name] = result
+
+    # 移除 isParent/childProjects 为 None 的字段，整洁输出
+    for pdata in projects.values():
+        if not pdata.get("isParent"):
+            del pdata["isParent"]
+            del pdata["childProjects"]
+
+    return {
+        "version": "1.0",
+        "lastUpdated": datetime.now().strftime("%Y-%m-%d"),
+        "projects": projects,
+        "fixedTasks": ["和杨老师交流"],
+    }
 
 
 def main():
-    parser = argparse.ArgumentParser(description="扫描项目文件并重建缓存")
-    parser.add_argument("--todo-dir", help="TODO 数据目录 (默认 $TODO_DIR)")
-    args = parser.parse_args()
+    output_path = DEFAULT_OUTPUT
+    if len(sys.argv) > 1:
+        for i, arg in enumerate(sys.argv[1:]):
+            if arg == "--output" and i + 2 < len(sys.argv):
+                output_path = Path(sys.argv[i + 2])
+            elif arg.startswith("--output="):
+                output_path = Path(arg.split("=", 1)[1])
 
-    todo_dir = args.todo_dir or get_default_todo_dir()
-    scan(todo_dir)
+    data = scan_all()
+
+    # 确保输出目录存在
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+    n_projects = len(data["projects"])
+    n_tasks = sum(len(p.get("incompleteTasks", [])) for p in data["projects"].values())
+    print(
+        f"缓存已更新: {n_projects} 个项目, {n_tasks} 个未完成任务 → {output_path}"
+    )
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-# 基础功能详细说明 (v6.3)
+# 基础功能详细说明 (v6.2)
 
 本文档为 SKILL.md 的补充实现细节。功能编号与 SKILL.md 核心功能触发表对齐。
 
@@ -48,7 +48,7 @@
 
 **执行步骤：**
 1. 解析日期为 `YYYY-MM-DD`（默认当年）
-2. 检查 `$TODO_DIR/daily/YYYY-MM-DD.md` 是否存在
+2. 检查 `daily/YYYY-MM-DD.md` 是否存在
 3. 不存在则创建，存在则追加到 `## 📋 今日待办`
 
 ---
@@ -60,9 +60,9 @@
 **支持元数据：** 截止日期、优先级（高/中/低）、当前阶段
 
 **执行步骤：**
-1. 在 `$TODO_DIR/projects/` 创建 `YYYY-MM-DD-项目名.md`
+1. 在 `projects/` 创建 `YYYY-MM-DD-项目名.md`
 2. 写入元数据和空任务列表
-3. 更新 `$TODO_DIR/memory/project-tasks-cache.json`
+3. 更新 `memory/project-tasks-cache.json`
 
 ---
 
@@ -73,7 +73,7 @@
 **执行步骤：**
 1. Read 项目文件
 2. Edit 追加到 `## 任务列表`
-3. 更新缓存 `$TODO_DIR/memory/project-tasks-cache.json`
+3. 更新缓存 `memory/project-tasks-cache.json`
 
 ---
 
@@ -83,8 +83,8 @@
 
 **执行步骤：**
 1. 读取项目文件，检查任务是否存在
-2. 更新 `$TODO_DIR/memory/session-context.json`：记录 currentTask、startTime
-3. 从 `$TODO_DIR/memory/task-time-history.json` 读取同类任务历史用时
+2. 更新 `memory/session-context.json`：记录 currentTask、startTime
+3. 从 `memory/task-time-history.json` 读取同类任务历史用时
 4. 输出时间预测（如有历史数据）
 
 **时间预测算法：**
@@ -101,10 +101,10 @@
 
 **执行步骤：**
 1. 从 session-context.json 读取开始时间，计算实际用时
-2. 写入 `$TODO_DIR/memory/task-time-history.json`（任务名、类型、用时、时段）
+2. 写入 `memory/task-time-history.json`（任务名、类型、用时、时段）
 3. 更新 daily 文件 `## 🕐 时间线记录` 和 `## ✅ 今日已完成`
 4. 更新项目文件：任务列表标记 ✅、📅项目日志追加、进度更新
-5. 更新缓存 `$TODO_DIR/memory/project-tasks-cache.json`
+5. 更新缓存 `memory/project-tasks-cache.json`
 
 ---
 
@@ -114,8 +114,8 @@
 
 | 状态 | 位置 |
 |------|------|
-| 进行中/未完成 | `$TODO_DIR/projects/临时任务.md` → 🟡 活跃临时任务 |
-| 已完成 | `$TODO_DIR/projects/临时任务.md` → ✅ 历史记录 |
+| 进行中/未完成 | `临时任务.md` → 🟡 活跃临时任务 |
+| 已完成 | `临时任务.md` → ✅ 历史记录 |
 
 ---
 
@@ -124,10 +124,10 @@
 **触发条件：** "早上好"、"开始工作"、"开工"
 
 **执行步骤：**
-1. Read `$TODO_DIR/daily/YYYY-MM-DD.md`
-2. Read `$TODO_DIR/memory/project-tasks-cache.json`（过期则重建）
-3. 检测是否有特定类型任务（关键词可在 config.md 中配置）
-4. 如有特定类型任务，输出激励内容
+1. Read `daily/YYYY-MM-DD.md`
+2. Read `memory/project-tasks-cache.json`（过期则重建）
+3. 检测是否有实证任务（关键词：回归、面板、Stata、数据、基准回归等）
+4. 如有实证任务，输出激励内容
 5. 自动执行 §11 风险预警
 6. 输出今日任务概览
 
@@ -136,7 +136,7 @@
 🌅 早上好！今天是 YYYY年MM月DD日 周X
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-[激励内容 - 如有特定类型任务]
+[激励内容 - 如有实证任务]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📋 今日待办提醒
@@ -186,7 +186,7 @@
 **触发条件：** "结束工作"、"更新日志"
 
 **执行步骤：**
-1. 执行跨对话搜索（扫描 `$CLAUDE_TRANSCRIPT_DIR` 下所有 JSONL）
+1. 执行跨对话搜索（扫描 `C:/Users/29774/.claude/projects/` 下所有 JSONL）
 2. 按北京时间（UTC+8）筛选今日用户消息
 3. 排除当前会话、skill加载、command-message 等噪音
 4. 结果分流：
@@ -206,6 +206,8 @@
 
 **自检：** 写完每条问自己——(1)为什么做？(2)在论文哪部分？(3)能定位到对应数据/代码吗？(4)能复现出同样结果吗？四个必须全为是。
 
+反面示例：`修改fig1趋势图`（缺目的/对象/数据/结果）、`跑机制检验`（缺假设/设定/结果）→ 禁止。
+
 ---
 
 ## §11 风险预警+Guard
@@ -217,11 +219,9 @@
 | 维度 | 检测内容 |
 |------|---------|
 | 截止风险 | 3天内截止 / 已逾期任务 / 逾期超7天 |
-| 习惯风险 | 连续N天未完成习惯任务 / 项目停滞超5天 |
+| 习惯风险 | 连续2天未和杨老师交流 / 项目停滞超5天 |
 | 效率风险 | 连续3天低效 / 任务完成率低于日均50% |
 | 缓存过期 | `project-tasks-cache.json` lastUpdated ≠ 今天 |
-
-Guard 配置（`$TODO_DIR/memory/guard-config.json`）支持自定义阈值和级别。
 
 ---
 
@@ -231,9 +231,9 @@ Guard 配置（`$TODO_DIR/memory/guard-config.json`）支持自定义阈值和�
 
 **数据来源：** 本周 daily/*.md + projects/*.md 进度变化
 
-**写入位置：** `$TODO_DIR/weekly/` 或 `$TODO_DIR/reviews/`
+**写入位置：** `weekly/` 或 `reviews/`
 
 ---
 
-**最后更新：** 2026-05-25
-**版本：** v6.3
+**最后更新：** 2026-05-21
+**版本：** v6.2
