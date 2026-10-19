@@ -13,17 +13,9 @@ Output: 各子do实际生成的日志、数据、表与图
 **# 00 文件用途与运行说明
 /* 主程序只按配置顺序调用；每个do本身也可独立运行。 */
 do "{{ROOT_PATH}}/do/01_统一设置.do"
-capture log close master
-* 同一任务保留每次原生日志，使用未占用的运行编号；不新建运行目录。
-local log_run = 1
-local log_file "$LOGROOT/主程序_run`log_run'.log"
-capture confirm file "`log_file'"
-while _rc == 0 {
-    local ++log_run
-    local log_file "$LOGROOT/主程序_run`log_run'.log"
-    capture confirm file "`log_file'"
-}
-log using "`log_file'", name(master) text
+* 用01中的next_log取未占用的运行编号日志；同名日志若因上次中断仍开着，先手动 log close master
+next_log, stem(主程序)
+log using "`r(file)'", name(master) text
 
 **# 01 按顺序调用各do
 * 按需00构建，再02变量定义、03描述性统计和后续逐表do。

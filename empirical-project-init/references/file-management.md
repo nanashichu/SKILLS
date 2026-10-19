@@ -62,8 +62,7 @@ manuscript_version,item_id,column_model,entry,input_paths,result_data,model_obje
 
 ```stata
 * 紧跟该列估计命令；ID变量必须来自真实观测键
-* 以下程序只在01_统一设置.do中定义；每张表直接调用它
-capture program drop save_sample_ids
+* 以下程序只在01_统一设置.do中定义（01开头已 program drop _all，不用capture）；每张表直接调用它
 program define save_sample_ids
     syntax, Model(name)
     tempname sample_frame

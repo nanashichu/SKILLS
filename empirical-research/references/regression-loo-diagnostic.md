@@ -1,5 +1,3 @@
-**目录日期统一在前（2026-10-10用户约定）。** 任务、采用项、结果版本和归档目录用`YYYYMMDD_主题`，例如`测试/机制/20261010_VC新口径`、`data/temp/20261010_VC获投企业家数_采用`；同日独立任务重名时用`YYYYMMDD_HHMMSS_主题`。日期取任务实际开始日，继续原尝试沿用原日期，不能以整理日替代历史任务日期；没有可靠日期时先查日志/来源，仍不明则标为待确认，不编造日期。data、raw、temp、final、do、code、result、table、figure、测试、归档、初稿等固定用途目录及数据/程序等包内分类保持用途名称，不强加日期。文件名继续遵循各自规则，现用代码仍按两位序号开头。旧目录改名先登记准确映射、检查重名和依赖，同步现用程序、README和两张清单，核验原文件；历史日志与回执保留原字节，通过路径映射回查。
-
 # 通用回归排除自身诊断
 
 当用户要求 rangestat 排除自身回归、逐观测影响诊断或复现按目标系数排序删除时使用。它是诊断工具；按结果排序不提供数据错误或合理样本剔除的实质依据。
@@ -55,7 +53,7 @@ fit 接收删后的DataFrame，返回 statsmodels 估计对象；其他估计器
 依赖 numpy、pandas、statsmodels、scipy、pyarrow、patsy。支持DTA、Parquet、CSV。
 
 ```powershell
-python "<技能目录>/scripts/regression_loo_diagnostic.py" --input "数据.dta" --formula "y ~ did + x1 + x2 + C(firm_id) + C(year)" --target did --cluster city_id --drop 2 120 240 --data-dir "测试/分析类别/YYYYMMDD_回归影响诊断/数据" --log-dir "测试/分析类别/YYYYMMDD_回归影响诊断"
+python "<技能目录>/scripts/regression_loo_diagnostic.py" --input "数据.dta" --formula "y ~ did + x1 + x2 + C(firm_id) + C(year)" --target did --cluster city_id --drop 2 120 240 --data-dir "data/temp/YYYYMMDD_回归影响诊断" --log-dir "测试/分析类别/YYYYMMDD_回归影响诊断"
 ```
 
 Python可用 importlib.util.spec_from_file_location 加载脚本，或用 runpy.run_path(脚本实际路径) 取得 formula_linear、regression_diagnostic、save_result。技能目录使用本轮实际SKILL.md所在目录；不能依赖原项目的56号脚本路径。

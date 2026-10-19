@@ -25,13 +25,16 @@ Output: $TABLE/本表RTF；估计对象和样本ID进$TEMP
 5. merge 后必须 tab _merge 确认匹配
 6. bysort 后必须重新 xtset 再用 L. 算子
 7. 适用的样本筛选在00构建完成，下游不重复剔除
+8. 不使用 capture
+9. 默认各列统一使用 _sample == 1 样本；偏离须由用户说明并在表注写明
+10. esttab 保留常数项和控制变量系数
 
-【文件管理约定（2026-10-08）】
+【文件管理约定】
 1. 00构建、01设置、02变量定义、03描述统计，04起逐表；工作序号与论文表号分别登记
 2. 本do先读取01设置，再明确读取输入；不依赖主程序或上一个do的会话
 3. 候选与现用面板、底表、对象和样本均集中data/temp；未采用代码留原测试包，旧final保留
 4. TEMP始终指data/temp；未采用TABLE/FIGURE在原包，采用后按授权进入result；LOGROOT始终在原包
-5. 禁用preserve/restore；数据切换明确save/use；estimates store/restore允许
+5. 禁用preserve/restore与capture；数据切换明确save/use；estimates store/restore允许
 6. 共用宏及助手集中01；替换正式产物前留归档；已有文件按确认清单清理
 
 【本文件额外约束】
@@ -41,8 +44,7 @@ Output: $TABLE/本表RTF；估计对象和样本ID进$TEMP
 
 【esttab 标准格式】
 esttab ... using "$TABLE/{{OUTPUT_DATE}}_{{TABLE_ID}}_主题.rtf", replace ///
-    se star(* 0.10 ** 0.05 *** 0.01) ///
-    r2(%9.4f) b(%9.4f) se(%7.4f) compress nogap ///
+    b(%9.4f) se(%7.4f) star(* 0.10 ** 0.05 *** 0.01) compress nogap ///
     stats(N r2, fmt(%9.0f %9.4f) labels("N" "R2"))
 
 【变量命名】
@@ -51,17 +53,9 @@ esttab ... using "$TABLE/{{OUTPUT_DATE}}_{{TABLE_ID}}_主题.rtf", replace ///
 ==============================================================================*/
 
 do "{{ROOT_PATH}}/do/01_统一设置.do"
-capture log close step08
-* 同一任务保留每次原生日志，使用未占用的运行编号；不新建运行目录。
-local log_run = 1
-local log_file "$LOGROOT/{{DO_STEM}}_run`log_run'.log"
-capture confirm file "`log_file'"
-while _rc == 0 {
-    local ++log_run
-    local log_file "$LOGROOT/{{DO_STEM}}_run`log_run'.log"
-    capture confirm file "`log_file'"
-}
-log using "`log_file'", name(step08) text
+* 用01中的next_log取未占用的运行编号日志；同名日志若因上次中断仍开着，先手动 log close step08
+next_log, stem({{DO_STEM}})
+log using "`r(file)'", name(step08) text
 
 * ============================================================================
 **# 01 读取数据
@@ -76,32 +70,28 @@ xtset $ENTITY $TIME
 * ============================================================================
 
 * 基准回归系数
-reghdfe {{DEP_VAR}} {{INDEP_VAR}} $X if _sample == 1, ///
+reghdfe {{DEP_VAR}} {{INDEP_VAR}} $CONTROLS if _sample == 1, ///
     absorb($ABSORB) vce(cluster $CLUSTER) $HDFE
 estimates save "$TEMP/{{DO_STEM}}_model.ster", replace
 save_sample_ids, model(T{{TABLE_ID}}_model)
 
-* X的标准差
-quietly summarize {{INDEP_VAR}} if _sample == 1
-local sd_X = r(sd)
-
-* 经济意义 = β × sd(X)
+* 标准差与均值都在该模型的实际估计样本 e(sample) 上计算
 local beta = _b[{{INDEP_VAR}}]
-local economic = `beta' * `sd_X'
-
-* Y的均值和标准差（用于解释）
-quietly summarize {{DEP_VAR}} if _sample == 1
+quietly summarize {{INDEP_VAR}} if e(sample)
+local sd_X = r(sd)
+quietly summarize {{DEP_VAR}} if e(sample)
 local mean_Y = r(mean)
 local sd_Y = r(sd)
 
-* 解释：X变化一个标准差，Y变化多少个标准差
+* 经济意义 = β × sd(X)；再换算为Y的标准差倍数和相对均值的比例
+local economic = `beta' * `sd_X'
 local economic_sd = `economic' / `sd_Y'
+local economic_pct = `economic' / `mean_Y'
 
-* ============================================================================
 **# 03 输出解读
-* 3. 输出解读
-* ============================================================================
-* {{INDEP_VAR}} 变化一个标准差（`sd_X'），{{DEP_VAR}} 变化 `economic' 个单位
-* 相当于 {{DEP_VAR}} 变化 `economic_sd' 个标准差
+* 3. 输出解读：矩阵打印进日志，解读文字按这些数值写入正文
+matrix econ = (`beta', `sd_X', `economic', `economic_sd', `economic_pct')
+matrix colnames econ = beta sd_X beta_x_sdX in_sdY share_of_meanY
+matlist econ, format(%12.4f)
 
 log close step08

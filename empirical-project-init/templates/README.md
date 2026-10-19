@@ -8,11 +8,11 @@
 - 日常计算用Python；单项采用不触发整体最终do/Stata。整体研究版本确认或明确要求核对后才生成/运行对应do，每个do自行读取设置和实际输入。
 - 设置占位符`{{TASK_DATA_PATH}}`始终填data/temp内的真实位置，`{{PANEL_RELATIVE_PATH}}`填真实面板路径；`{{TASK_NAME_DATE}}`和`{{MANAGEMENT_TASK}}`均填`YYYYMMDD_主题`形式的包名，重名时用`YYYYMMDD_HHMMSS_主题`；核对任务的日志和回执留测试包，不覆盖旧证据。
 - 特征化事实：{{FACTS_ENTRY}}；环境：{{ENVIRONMENT}}；来源和研究设定见CLAUDE.md。
-- 现用清单：[文件清单](测试/初稿整理/{{MANAGEMENT_TASK}}/文件清单.csv)、[图表对应](测试/初稿整理/{{MANAGEMENT_TASK}}/图表对应.csv)。初始化时替换为实际管理包路径；采用记录包含用户范围、模型ID、源/目标及指纹。
+- 现用清单：[文件清单](测试/分析类别/{{MANAGEMENT_TASK}}/文件清单.csv)、[图表对应](测试/分析类别/{{MANAGEMENT_TASK}}/图表对应.csv)。初始化时替换为实际管理包路径；采用记录包含用户范围、模型ID、源/目标及指纹。
 - 根目录不设logs；采用后的运行日志、来源、核验和预览仍留原测试包。获授权重跑采用项时LOGROOT沿用原包或其运行子目录。
 - 新生成的Word、PDF、RTF、Excel、PPT及交付图片统一为YYYYMMDD_主题.扩展名；Word/PDF同主文件名，专属回执沿用主文件名。任务开始日期与产物版本日期分别记录；采用和归档保留原版本日期。代码按工作序号、模型对象和样本按模型ID、原始文件保留来源名称。完整结果Word保留测试包原件，并在项目根完整实证放阅读副本，不以采用为前提。
 
 先总结，完整底表供回查；只有明确要求才新导出文档，采用不自动重估或扩展格式。替换旧正式版先归档，未经确认不删除；目录核验不等于实证复现通过。
 
 
-测试分类层采用七个固定名称。TASK_CATEGORY填实际类别；TASK_NAME_DATE保留日期前置包名；MANAGEMENT_TASK指初稿整理下的唯一现用管理包。
+测试分类层采用七个固定名称。TASK_CATEGORY填实际类别；TASK_NAME_DATE保留日期前置包名；MANAGEMENT_TASK指`测试/分析类别/`下唯一现用文件管理包的名称（`YYYYMMDD_文件管理`）。

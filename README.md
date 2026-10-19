@@ -8,6 +8,8 @@
 |-------|------|--------|
 | [daily-todo-manager](daily-todo-manager/) | 个人日周月待办任务管理系统：打卡/项目管理/任务追踪/每日总结/跨对话搜索/风险预警/周报生成 | "早上好"、"结束工作"、"检查风险" |
 | [conversation-refiner](conversation-refiner/) | 历史对话整理与笔记提炼，增量分析→逐日精读→写入Obsidian | "整理对话"、"提炼笔记"、"对话复盘" |
+| [empirical-research](empirical-research/) | 实证研究计算与结果：Python估计并全量保存，先在对话总结显著组合与下一步；明确要求才导出Word；研究版本确认后才用Stata核对最终do | "跑回归"、"机制/异质性/稳健性"、"导出结果表" |
+| [empirical-project-init](empirical-project-init/) | 实证项目初始化与文件管理：唯一现用入口、data/raw temp final、逐表do、测试分类包、两张现用清单、归档验收与安全清理 | "初始化实证项目"、"整理项目文件"、"归档验收" |
 
 ## 安装
 

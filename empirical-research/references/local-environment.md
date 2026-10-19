@@ -2,6 +2,8 @@
 
 计算默认用Python；下面的Stata路径、包和批量命令仅用于最终版本确认后的核对或用户直接要求的Stata任务，不能据此自动执行旧主程序。执行阶段以[SKILL.md](../SKILL.md)为准。
 
+以下路径和包版本是用户本机（Windows）的记录，不是通用默认；使用前先核实存在，其他电脑以项目 CLAUDE.md 的环境说明为准。
+
 ## 1. Stata 环境
 
 | 项目 | 路径 |
@@ -45,12 +47,13 @@ import numpy as np
 from linearmodels.panel import PanelOLS
 import statsmodels.api as sm
 from scipy import stats
+import pyfixest as pf   # 高维FE、聚类、did2s，见 python-methods.md §5
 ```
 
 ### 安装依赖
 
 ```bash
-pip install linearmodels pandas numpy scipy statsmodels
+pip install linearmodels pandas numpy scipy statsmodels pyfixest
 ```
 
 ---

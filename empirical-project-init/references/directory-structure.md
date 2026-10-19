@@ -39,7 +39,8 @@
 | RESULT / TABLE / FIGURE | 未采用时均指测试包根；采用后按授权用result / 排版表 / 图 |
 | LOGROOT | 任何阶段均为原测试/分析类别/YYYYMMDD_主题或其运行子目录；采用后也不转写根logs |
 | YEAR_MIN / YEAR_MAX | 已约定样本年份 |
-| X / PANEL | 已约定控制变量列表 / PANEL_RELATIVE_PATH指定的实际输入或本阶段新面板 |
+| CONTROLS / PANEL | 已约定控制变量列表 / PANEL_RELATIVE_PATH指定的实际输入或本阶段新面板 |
+| ensure_dir / next_log / save_sample_ids | 不用capture的目录创建、未占用日志编号、真实样本ID助手 |
 | ENTITY / TIME / ABSORB / CLUSTER / HDFE | 真实面板键、FE、聚类和公共回归选项 |
 | SAMPLE_IDS / COEFLABELS | 真实观测键 / 统一系数标签 |
 
@@ -52,6 +53,6 @@
 每个构建/分析do先do绝对路径的01设置，再use/import自己的输入；00也先读01。设置本身不use数据或做回归。禁用preserve/restore，明确写出TEMP中间文件的save/use；estimates store及estimates restore允许。共用真实样本助手放01，保存结果到按阶段设置的$TEMP。未采用但用户明确要求Stata/do核对时，先定位并复用本研究问题的测试任务目录，所有do和本轮01设置都生成在同一包；把每个模板首个do加载语句中的正式do/01绝对路径改为该包内01的真实绝对路径，禁止加载正式目录旧设置。TASK_DATA_PATH使用data/temp中的真实数据任务路径，TASK_STAGE未采用时填trial，DO/CODE/RESULT/TABLE/FIGURE和日志均指向分类测试包，TEMP另指data/temp中的数据任务；输入可只读引用既有源，新增DTA与中间文件集中data/temp；测试包登记引用。运行前逐项展开检查；采用后才按范围生成正式路径。逐表do不得依赖前一文件或主程序留下的状态。
 
 
-测试分类层采用七个固定名称。TASK_CATEGORY填实际类别；TASK_NAME_DATE保留日期前置包名；MANAGEMENT_TASK指初稿整理下的唯一现用管理包。
+测试分类层采用七个固定名称。TASK_CATEGORY填实际类别；TASK_NAME_DATE保留日期前置包名；MANAGEMENT_TASK指唯一现用文件管理包名；它位于`测试/分析类别/YYYYMMDD_文件管理/`，按类别定义（目录/文件/skill管理）归入初稿整理。
 
 已有上游历史混合源包及含模块导入/vendor依赖的现用代码包迁移时，可在清单登记准确路径、来源与现用依赖后保留内部相对布局，避免强拆导致断链；这个边界不允许今后把新代码、日志任意写入data，也不允许复制一套重复上游。

@@ -140,6 +140,8 @@ def inspect(root, legacy_bundles=()):
                 prefix = r'^\s*(?:(?:capture|cap|quietly|qui|noisily|noi)\s+)*'
                 for match in re.finditer(prefix + r'(preserve|restore)\b', commands, re.M | re.I):
                     issues.append('禁用数据现场命令' + match.group(1).lower() + '：' + relative)
+                for match in re.finditer(r'^\s*(?:(?:quietly|qui|noisily|noi)\s+)*(capture|cap)\b', commands, re.M | re.I):
+                    issues.append('do中不使用capture：' + relative)
                 for macro in LEGACY_GLOBALS:
                     if re.search(r'\$\{?' + macro + r'\b|\bglobal\s+' + macro + r'\b', commands):
                         issues.append('不再使用运行状态宏' + macro + '：' + relative)
@@ -161,8 +163,10 @@ def inspect(root, legacy_bundles=()):
                     regression = re.search(prefix + r'(?:reghdfe|regress|reg|xtreg|csdid|did2s|eventstudyinteract|did_multiplegt_dyn)\b', commands, re.M | re.I)
                     if data_input and regression and data_input.start() > regression.start():
                         issues.append('回归前须先显式读取输入数据：' + relative)
-                    if re.search(r'\$\{?X\b', commands) and not re.search(prefix + r'global\s+X\b', settings, re.M):
-                        issues.append('控制变量宏X未在01统一设置定义：' + relative)
+                    if re.search(r'\$\{?CONTROLS\b', commands) and not re.search(prefix + r'global\s+CONTROLS\b', settings, re.M):
+                        issues.append('控制变量宏CONTROLS未在01统一设置定义：' + relative)
+                    if re.search(r'\$\{?X\b', commands):
+                        issues.append('控制变量宏统一为$CONTROLS，不再使用$X：' + relative)
                     for match in re.finditer(prefix + r'global\s+(\w+)\b', commands, re.M | re.I):
                         if match.group(1) in COMMON_GLOBALS:
                             issues.append('公共设置global ' + match.group(1) + '须集中01：' + relative)

@@ -23,12 +23,12 @@ Output: 按阶段显式指定的$PANEL；$TEMP/构建过程DTA，不自动进入
 最终输出：$PANEL；单独运行：do本文件绝对路径
 每个合并旁写来源、键和缺失处理；每个样本条件写原因。
 
-【文件管理约定（2026-10-08）】
+【文件管理约定】
 1. 00构建、01设置、02变量定义、03描述统计，04起逐表；工作序号与论文表号分别登记
 2. 本do先读取01设置，再明确读取输入；不依赖主程序或上一个do的会话
 3. 候选与现用面板、底表、对象和样本均集中data/temp；未采用代码留原测试包，旧final保留
 4. TEMP始终指data/temp；未采用TABLE/FIGURE在原包，采用后按授权进入result；LOGROOT始终在原包
-5. 禁用preserve/restore；数据切换明确save/use；estimates store/restore允许
+5. 禁用preserve/restore与capture；数据切换明确save/use；estimates store/restore允许
 6. 共用宏及助手集中01；替换正式产物前留归档；已有文件按确认清单清理
 
 【阅读要求】
@@ -38,17 +38,9 @@ Output: 按阶段显式指定的$PANEL；$TEMP/构建过程DTA，不自动进入
 ==============================================================================*/
 
 do "{{ROOT_PATH}}/do/01_统一设置.do"
-capture log close step01
-* 同一任务保留每次原生日志，使用未占用的运行编号；不新建运行目录。
-local log_run = 1
-local log_file "$LOGROOT/00_导入原始数据与构建_run`log_run'.log"
-capture confirm file "`log_file'"
-while _rc == 0 {
-    local ++log_run
-    local log_file "$LOGROOT/00_导入原始数据与构建_run`log_run'.log"
-    capture confirm file "`log_file'"
-}
-log using "`log_file'", name(step01) text
+* 用01中的next_log取未占用的运行编号日志；同名日志若因上次中断仍开着，先手动 log close step01
+next_log, stem(00_导入原始数据与构建)
+log using "`r(file)'", name(step01) text
 
 * ============================================================================
 **# 01 加载主数据
@@ -75,18 +67,27 @@ xtset $ENTITY $TIME
 **# 04 样本筛选
 * 4. 样本筛选
 * ============================================================================
-* 剔除金融行业
+* raw不动；构建面板时可以drop，但每步前后count，日志即删除记录。
+* 同时在CLAUDE.md样本筛选表登记：初始N、条件、删除数、剩余N、原因。
+count
+* 剔除金融行业（仅上市公司研究适用；不适用则删除本段）
 {{DROP_FINANCE}}
+count
 
-* 剔除ST/PT
+* 剔除ST/PT（仅上市公司研究适用；不适用则删除本段）
 {{DROP_ST}}
+count
 
-* 剔除缺失值
+* 剔除核心变量缺失（其余变量缺失由下方_sample统一标记，不逐个drop）
 {{DROP_MISSING}}
+count
 
-* 标记分析样本
-gen _sample = 1 if !missing({{DEP_VAR}}, {{INDEP_VAR}}) {{SAMPLE_CONDITION}}
-label variable _sample "分析样本标记"
+* 标记统一分析样本：第4列（有控制、有FE）所需全部变量非缺失；各表默认统一使用
+egen _nmiss = rowmiss({{DEP_VAR}} {{INDEP_VAR}} $CONTROLS)
+gen _sample = 1 if _nmiss == 0 {{SAMPLE_CONDITION}}
+drop _nmiss
+label variable _sample "统一分析样本标记"
+count if _sample == 1
 
 * ============================================================================
 **# 05 保存面板
@@ -96,8 +97,8 @@ label variable _sample "分析样本标记"
 save "$TEMP/00_候选面板.dta", replace
 {{PANEL_VALIDATION_CODE}}
 * PANEL按PANEL_RELATIVE_PATH显式选择本阶段新DTA；已有输入只读，不因采用覆盖其他版本。
-capture confirm new file "$PANEL"
-if _rc {
+mata: st_local("panel_exists", strofreal(fileexists(st_global("PANEL"))))
+if "`panel_exists'" == "1" {
     display as error "最终DTA已存在；请保留原版并为本次构建选择未占用的日期口径文件名。"
     exit 602
 }

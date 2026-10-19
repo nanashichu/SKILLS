@@ -13,20 +13,12 @@ Output: $TABLE/变量定义表；必要的字典底表进$TEMP
 **# 00 文件用途与运行说明
 /* 02_变量定义.do；对应论文表{{TABLE_ID}}，定义/来源按实际稿件配置。 */
 do "{{ROOT_PATH}}/do/01_统一设置.do"
-capture log close vardef
-* 同一任务保留每次原生日志，使用未占用的运行编号；不新建运行目录。
-local log_run = 1
-local log_file "$LOGROOT/{{DO_STEM}}_run`log_run'.log"
-capture confirm file "`log_file'"
-while _rc == 0 {
-    local ++log_run
-    local log_file "$LOGROOT/{{DO_STEM}}_run`log_run'.log"
-    capture confirm file "`log_file'"
-}
-log using "`log_file'", name(vardef) text
+* 用01中的next_log取未占用的运行编号日志；同名日志若因上次中断仍开着，先手动 log close vardef
+next_log, stem({{DO_STEM}})
+log using "`r(file)'", name(vardef) text
 use "$PANEL", clear
 
-describe {{DEP_VAR_LIST}} {{INDEP_VAR}} $X
+describe {{DEP_VAR_LIST}} {{INDEP_VAR}} $CONTROLS
 **# 01 变量定义的来源或计算
 * 如需计算表：中间字典写TEMP、最终RTF写TABLE。
 * 若为人工文字表，登记人工来源，不伪造计算链路。

@@ -18,7 +18,7 @@
 |------|------|----------|
 | 面板数据未设置 MultiIndex | `PanelOLS` 无法识别面板结构 | `df.set_index(['firm_id', 'year'])` |
 | 聚类标准误未指定 | 显著性推断无效 | `model.fit(cov_type='clustered', cluster_entity=True)` |
-| 缺失值未处理 | 回归失败或结果错误 | `df.dropna()` 或 `df.fillna()` |
+| 缺失值处理无规则 | 静默改变样本或引入偏误 | 按变量性质明确删除/插补/缺失指示，记录前后N；不默认全表dropna或中位数插补 |
 | 滞后变量未按实体与日历间隔 | 混淆个体或跨过年份缺口 | 按实体键与目标年份连接，或补齐时间索引后移位；直接groupby/shift仅适用于已验证连续的时间索引 |
 | 未添加常数项 | 无截距项回归 | `sm.add_constant(X)` |
 
@@ -28,7 +28,7 @@
 |--------|------|------|
 | 包导入 | 正确导入 `linearmodels.panel` | -5 |
 | 数据索引 | `set_index(['firm_id', 'year'])` | -10 |
-| 缺失值处理 | `dropna` 或 `fillna` | -10 |
+| 缺失值处理 | 规则明确并记录样本变化 | -10 |
 | 注释完整 | 函数有 docstring | -5 |
 | 结果提取 | 正确提取 `params`, `tstats`, `pvalues` | -10 |
 
@@ -110,7 +110,7 @@ print(f"系数: {result.params['L_digital']:.4f}")
 print(f"t值: {result.tstats['L_digital']:.2f}")
 print(f"p值: {result.pvalues['L_digital']:.4f}")
 print(f"观测数: {result.nobs}")
-print(f"R²: {result.rsquared_within:.4f}")
+print(f"R²（含FE总体）: {result.rsquared_inclusive:.4f}")  # 项目约定报告含FE的总体R²，不以within R²冒充
 ```
 
 ### 1.4 结果汇总
@@ -136,6 +136,8 @@ def results_to_df(results_dict):
 ---
 
 ## 2. 机制检验（Sobel）
+
+> 默认机制检验是一步法（只看 X 对 M），不做 Sobel。Sobel 仅在项目要求两步法时使用，且只提供中介的统计证据，不等于机制已被证实。
 
 ```python
 from scipy import stats
@@ -191,6 +193,7 @@ def did_2x2(data, y_var, treat_var, post_var, controls=None):
 ```python
 def event_study(data, y_var, treat_var, rel_time_var, base_period=-1, controls=None):
     """事件研究法"""
+    data = data.copy()
     for t in data[rel_time_var].unique():
         if t != base_period:
             data[f't_{int(t)}'] = (data[rel_time_var] == t) * data[treat_var]
@@ -218,8 +221,8 @@ df['income'] = pd.to_numeric(df['income'], errors='coerce')
 
 # 缺失值
 print(df.isnull().sum())
-df = df.dropna(subset=['key_var'])
-df['income'] = df['income'].fillna(df['income'].median())
+df = df.dropna(subset=['key_var'])  # 只删核心变量缺失，记录删除前后N
+# 插补须有研究设计依据并写入变量字典，不默认用中位数填补
 ```
 
 ### 4.2 异常值处理
@@ -227,7 +230,8 @@ df['income'] = df['income'].fillna(df['income'].median())
 ```python
 from scipy.stats import mstats
 
-# Winsorize
+# Winsorize —— 注意：mstats.winsorize 不跳过缺失值，截断点定义也与 Stata winsor2 不同；
+# 沿用 winsor2 口径时按其百分位定义自行实现并对照核验
 df['income_win'] = mstats.winsorize(df['income'], limits=[0.01, 0.01])
 
 # IQR 方法
@@ -498,7 +502,7 @@ pf.coefplot([fit1, fit2])
 | 坑 | 错误做法 | 正确做法 |
 |----|----------|----------|
 | feglm() 固定效应 | `feglm("Y ~ X1 \| f1", ...)` | 用 `C(f1)` 代替 |
-| HC2/HC3 与 FE | `vcov="HC3"` 报错 | 用 `vcov={"CRV3": "f1"}` |
+| HC2/HC3 与 FE | `vcov="HC3"` 报错 | 改用 `vcov={"CRV3": "f1"}` 时在表注写明（聚类 jackknife，不等价于 HC3） |
 | 聚类变量有缺失值 | 静默错误 | `df.dropna(subset=["f1"])` |
 | C() 嵌套 sw() | `sw0(X2, C(f1))` 报错 | 预先生成哑变量 |
 | IV 无外生变量 | `"Y ~ \| f1 \| X1 ~ Z1"` | `"Y ~ 1 \| f1 \| X1 ~ Z1"` |
