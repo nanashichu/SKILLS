@@ -1,0 +1,103 @@
+---
+title: "{{PROJECT_TITLE}} — 实证结果报告"
+subtitle: "可复现结果汇编（Quarto 自动生成）"
+author: "实证项目"
+date: "today"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-location: left
+    number-sections: true
+    theme: cosmo
+    embed-resources: true
+    fig-caption: true
+---
+
+<!--
+===========================================================
+报告说明（AI/用户渲染前必读）
+===========================================================
+仅在用户明确要求HTML报告时使用，复用该研究问题原任务包中的 测试/{{TASK_CATEGORY}}/{{TASK_NAME_DATE}}/analysis_report.qmd 后渲染；不默认生成报告，不写初稿或新增顶层reports。输入和图路径按本轮已保存Python结果显式填写，不自动从正式结果目录取旧表。
+日常数值来自已核验的Python底表、完整估计对象、实际样本与日志；最终Stata核对按其实际执行状态另报。
+
+【已授权报告的表格嵌入 — 已保存底表或RTF转markdown】
+Quarto 不能直接渲染 .rtf，需用自带的 pandoc 转成 markdown 粘贴到对应章节。
+在项目根目录运行（替换 xxx 为实际表名）：
+  "C:\Program Files\Quarto\bin\tools\pandoc.exe" -f rtf -t gfm "测试/{{TASK_CATEGORY}}/{{TASK_NAME_DATE}}/xxx.rtf"
+将输出粘贴到下方对应章节的 <!-- pandoc --> 处。显著性星号会自动转为上标。
+
+【图片嵌入】
+图片使用显式本轮路径；测试/{{TASK_CATEGORY}}/{{TASK_NAME_DATE}}中的候选图可用同目录相对路径，正式图按实际相对路径定位；Quarto自动嵌入（embed-resources）。
+
+【渲染命令】
+  quarto render "测试/{{TASK_CATEGORY}}/{{TASK_NAME_DATE}}/analysis_report.qmd" --to html
+（生成单文件 HTML，含全部图表，可直接发邮件/答辩/归档）
+===========================================================
+-->
+
+# 研究概览
+
+::: callout-note
+**研究问题**：{{DEP_VAR_DESC}} 与 {{INDEP_VAR_DESC}} 的关系。
+- 核心解释变量：`{{INDEP_VAR}}`（{{INDEP_VAR_DESC}}）
+- 预期系数方向：{{EXPECTED_SIGN}}（{{EXPECTED_SIGN_REASON}}）
+- 样本：{{ENTITY_DESC}}，{{YEAR_MIN}}–{{YEAR_MAX}}
+:::
+
+# 描述性统计
+
+主变量分布与相关性。完整表见 `测试/{{TASK_CATEGORY}}/{{TASK_NAME_DATE}}/描述性统计.rtf`、`测试/{{TASK_CATEGORY}}/{{TASK_NAME_DATE}}/相关系数矩阵.rtf`。
+
+![{{DEP_VAR_DESC}} 分布](../../result/figure/{{DEP_VAR}}_分布.png)
+
+# 基准回归
+
+逐步加入固定效应，观察核心系数 `{{INDEP_VAR}}` 的稳定性。源表：`测试/{{TASK_CATEGORY}}/{{TASK_NAME_DATE}}/基准回归.rtf`。
+
+<!-- pandoc 转换 测试/{{TASK_CATEGORY}}/{{TASK_NAME_DATE}}/基准回归.rtf 后粘贴此处：
+"C:\Program Files\Quarto\bin\tools\pandoc.exe" -f rtf -t gfm "测试/{{TASK_CATEGORY}}/{{TASK_NAME_DATE}}/基准回归.rtf"
+示例结构（替换为真实数值）：
+
+|  | (1) | (2) | (3) | (4) |
+|---|---|---|---|---|
+| {{INDEP_VAR}} | -0.0063*** | -0.0059** | -0.0044* | -0.0045* |
+|  | (0.0022) | (0.0023) | (0.0023) | (0.0023) |
+| 控制变量 | 是 | 是 | 是 | 是 |
+| 个体/年份FE | 是 | 是 | 是 | 是 |
+| 观测值 | 37414 | 37412 | 37332 | 37330 |
+| R² | 0.2471 | 0.2634 | 0.3771 | 0.3895 |
+-->
+
+# 机制检验
+
+机制变量：{{MECH_VARS}}。源表：`测试/{{TASK_CATEGORY}}/{{TASK_NAME_DATE}}/机制检验.rtf`。
+
+<!-- pandoc 转换 测试/{{TASK_CATEGORY}}/{{TASK_NAME_DATE}}/机制检验.rtf 后粘贴 -->
+
+# 稳健性检验
+
+替换被解释变量（{{ALT_DEP_VAR}}）、替换解释变量（{{ALT_INDEP_VAR}}）、替换样本（{{ALT_SAMPLE}}）、替换模型（{{ALT_MODEL}}）、安慰剂检验（{{PLACEBO_METHOD}}）。源表：`测试/{{TASK_CATEGORY}}/{{TASK_NAME_DATE}}/稳健性检验.rtf`。
+
+![安慰剂检验](../../result/figure/安慰剂检验.png)
+
+<!-- pandoc 转换 测试/{{TASK_CATEGORY}}/{{TASK_NAME_DATE}}/稳健性检验.rtf 后粘贴 -->
+
+# 异质性分析
+
+分组维度：{{HETERO_VARS}}。源表：`测试/{{TASK_CATEGORY}}/{{TASK_NAME_DATE}}/异质性分析.rtf`。
+
+<!-- pandoc 转换 测试/{{TASK_CATEGORY}}/{{TASK_NAME_DATE}}/异质性分析.rtf 后粘贴 -->
+
+# 经济意义解读
+
+系数的经济含义转换。源表：`测试/{{TASK_CATEGORY}}/{{TASK_NAME_DATE}}/经济意义.rtf`。
+
+<!-- pandoc 转换 测试/{{TASK_CATEGORY}}/{{TASK_NAME_DATE}}/经济意义.rtf 后粘贴 -->
+
+# 复现信息
+
+::: callout-important
+**复现范围**：登记真实输入、Python入口、包版本、种子及实际运行记录；报告模板或文件存在不能证明复现通过。最终do核对仅在版本确认后或用户明确要求时运行。
+**来源核验**：每项数值登记本轮真实底表、估计对象、样本和日志路径；未估计/失败项保留状态，不能使用示例数字或把历史日志称作本轮通过。
+:::
