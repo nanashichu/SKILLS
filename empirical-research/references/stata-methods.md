@@ -8,7 +8,7 @@
 - 控制变量在主 do 的处理数据一节定义 `global 控制变量`，全文件引用 `$控制变量`。
 - 不用 `capture` 容错或掩盖报错；只在文件头建目录时用 `cap mkdir`。
 - 基准回归默认四列：(1) 无控制无FE（`reg`）(2) 有控制无FE（`reg`）(3) 无控制有FE（`reghdfe`）(4) 有控制有FE（`reghdfe`，首选）。
-- 统一样本：基准第4列后 `gen sample=1 if e(sample)==1` 并存回面板，后续机制、稳健、异质、描述统计默认都用 `if sample == 1`；偏离须用户说明。
+- 统一样本：回归前 `egen nmiss=rowmiss(y x $控制变量)` + `gen sample=1 if nmiss==0&筛选条件`（第4列所需全部变量非缺失），后续机制、稳健、异质、描述统计默认都用 `if sample == 1`；偏离须用户说明。
 - esttab 保留常数项和控制变量系数，不用 `keep()`、`drop(_cons)`；`reghdfe absorb()` 不生成年份系数，不写 `drop(yr_*)`。
 
 ```stata

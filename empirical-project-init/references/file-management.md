@@ -58,7 +58,7 @@ manuscript_version,item_id,column_model,entry,input_paths,result_data,model_obje
 
 ## 每列模型的真实样本
 
-在实际估计完成后、重新排序/替换数据或下一次估计前，立即用估计器真实样本保存ID。键按观测单位确定，不能默认每个项目都是企业年份。日常估计在 Python 中保存逐模型样本 ID；最终 do 里只按 stata-do-my-style 写 `gen sample=1 if e(sample)==1`，核对时用 log 中的 N 与 Python 样本 ID 比对，不在 do 里写 frame/program 保存样本。
+在实际估计完成后、重新排序/替换数据或下一次估计前，立即用估计器真实样本保存ID。键按观测单位确定，不能默认每个项目都是企业年份。日常估计在 Python 中保存逐模型样本 ID；最终 do 里只在回归前写 `egen nmiss=rowmiss(...)` + `gen sample=1 if nmiss==0&筛选条件`，核对时用 log 中的 N 与 Python 样本 ID 比对，不在 do 里写 frame/program 保存样本。
 
 各列分别保存或将带模型ID的样本集合存成长表，并核对观测数及唯一性。筛选标记、共同面板和N不是实际估计样本；reghdfe单例剔除等可能造成差异。估计器不提供e(sample)时按其接口取实际使用行并说明，不能造一个“看起来N相同”的样本。历史缺失样本ID时明确记未补齐；需要真实重跑才能补齐，不以文件结构PASS掩盖缺口。
 

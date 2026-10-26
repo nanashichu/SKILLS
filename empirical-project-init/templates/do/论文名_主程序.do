@@ -143,15 +143,20 @@ save 【{{OUTPUT_DATE}}】{{PROJECT_TITLE}}面板,replace
 /*================================================================*/
 cd $DT
 use 【{{OUTPUT_DATE}}】{{PROJECT_TITLE}}面板,clear
-reg     {{DEP_VAR}}_w {{INDEP_VAR}}_w              if year>={{YEAR_MIN}}&year<={{YEAR_MAX}}&A股==1&ST!=1&PT!=1&金融公司!=1, vce(cluster stk_id)
+//统一样本：第4列所需变量都不缺失，再加样本筛选条件
+egen nmiss=rowmiss({{DEP_VAR}}_w {{INDEP_VAR}}_w $控制变量)
+gen sample=1 if nmiss==0&year>={{YEAR_MIN}}&year<={{YEAR_MAX}}&A股==1&ST!=1&PT!=1&金融公司!=1
+drop nmiss
+tab sample
+
+reg     {{DEP_VAR}}_w {{INDEP_VAR}}_w              if sample==1, vce(cluster stk_id)
 est store r1
-reg     {{DEP_VAR}}_w {{INDEP_VAR}}_w $控制变量     if year>={{YEAR_MIN}}&year<={{YEAR_MAX}}&A股==1&ST!=1&PT!=1&金融公司!=1, vce(cluster stk_id)
+reg     {{DEP_VAR}}_w {{INDEP_VAR}}_w $控制变量     if sample==1, vce(cluster stk_id)
 est store r2
-reghdfe {{DEP_VAR}}_w {{INDEP_VAR}}_w              if year>={{YEAR_MIN}}&year<={{YEAR_MAX}}&A股==1&ST!=1&PT!=1&金融公司!=1,absorb(stk_id year)  vce(cluster stk_id)
+reghdfe {{DEP_VAR}}_w {{INDEP_VAR}}_w              if sample==1,absorb(stk_id year)  vce(cluster stk_id)
 est store r3
-reghdfe {{DEP_VAR}}_w {{INDEP_VAR}}_w $控制变量     if year>={{YEAR_MIN}}&year<={{YEAR_MAX}}&A股==1&ST!=1&PT!=1&金融公司!=1,absorb(stk_id year)  vce(cluster stk_id)
+reghdfe {{DEP_VAR}}_w {{INDEP_VAR}}_w $控制变量     if sample==1,absorb(stk_id year)  vce(cluster stk_id)
 est store r4
-gen sample=1 if e(sample)==1
 
 // cd $DF
 // esttab r1 r2 r3 r4 using "基准回归.rtf", replace star(* 0.1 ** 0.05 *** 0.01) r2(%9.4f)   b(%9.4f) se(%7.4f)  compress nogap stats(N r2, fmt(%9.0f %9.4f)) varwidth(20) title("基准回归")
