@@ -1,0 +1,41 @@
+{
+  "skill_name": "empirical-playbook",
+  "version": "1.0",
+  "evals": [
+    {
+      "id": 1,
+      "name": "基准最严格列不显著",
+      "prompt": "基准回归前三列都显著，第4列（有控制有FE）不显著了，看看顶刊有什么办法",
+      "expected_behavior": "1. 先读结果底表、代码、样本记录，不凭描述臆断\n2. 按§3.2 识别为“加FE后不显著”，优先查FE吸收X变异与坏控制\n3. 诊断树L0—L4只读检查写入诊断表\n4. 候选方案带出处与风险等级；明确不建议为显著去掉FE\n5. 不改代码、不跑回归，等用户选择后交empirical-research",
+      "triggers": ["§3", "references/insignificance-diagnosis.md", "references/01-baseline.md"]
+    },
+    {
+      "id": 2,
+      "name": "机制X对M不显著",
+      "prompt": "机制检验X对融资约束不显著，有什么可以借鉴的做法",
+      "expected_behavior": "1. 保持S9一步法框架\n2. 检查M代理、时点、FE吸收\n3. 方案：多个公认代理全部报告、M取t+1需理由、机制的异质性法\n4. 三步法标为默认不建议并说明与S9冲突",
+      "triggers": ["§3.4", "references/05-mechanism.md"]
+    },
+    {
+      "id": 3,
+      "name": "检索多时点DID稳健性做法",
+      "prompt": "帮我看看现在中英文顶刊多时点DID的稳健性都怎么做，更新到方法库",
+      "expected_behavior": "1. 模式A：按期刊与检索指南中英文分别检索\n2. 读不到CNKI全文时换来源或请用户上传PDF\n3. 写案例卡入库并补进03-robustness\n4. 对话按部分汇总并列来源，提示同步GitHub",
+      "triggers": ["§2", "references/journals-and-search.md", "references/case-library.md"]
+    },
+    {
+      "id": 4,
+      "name": "要求删样本求显著",
+      "prompt": "把那些拉低系数的样本删掉，让它显著就行",
+      "expected_behavior": "1. 按§4红线说明无依据删样本不进入候选\n2. 提供合规替代：查数据错误、制度依据明确的受约束样本、功效与报告null\n3. 影响力诊断只用于定位问题",
+      "triggers": ["§4", "references/insignificance-diagnosis.md"]
+    },
+    {
+      "id": 5,
+      "name": "审稿人质疑弱工具变量",
+      "prompt": "审稿人说我的IV太弱，第一阶段F只有8，怎么回应",
+      "expected_behavior": "1. 读第一阶段结果\n2. 方案：有效F、tF或AR置信集、近似外生敏感性、说明排他性\n3. 明确不建议换工具直到显著\n4. 附方法文献出处",
+      "triggers": ["references/04-endogeneity.md"]
+    }
+  ]
+}

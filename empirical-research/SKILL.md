@@ -71,6 +71,7 @@ description: "实证研究计算与结果：用Python构建/调整变量与样�
 |---|---|
 | 调整 Y、M、H、控制或样本 | [项目经验§1—2](references/project-experience.md)：变量变更表、真实来源与共同样本 |
 | 寻找合理规格、诊断显著性、复查未保留检验 | [项目经验§3](references/project-experience.md)；[规格汇总模板](scripts/汇总规格检验_模板.py)：全量结果、失败状态、模块/主检验/全局 BH |
+| 结果不显著、想借鉴顶刊做法或找方法依据 | 先用 [empirical-playbook](../empirical-playbook/SKILL.md) 只读诊断并给候选方案，用户选定后回到本 skill 估计 |
 | DID 交互、事前分组、抑制性检验 | [组间差异](references/group-difference-test.md)：主效应、交互、线性组合与正式差异 |
 | 用户明确要求完整结果 Word 或三线表 | [导出指南](references/report-generation.md)；[Word 模板](scripts/导出完整结果Word_模板.py)从指定现用 Word 复制页面与表格格式 |
 | 多时点/多期 DID 替代方法稳健性表 | [纵排专用规范](references/multiperiod-did-vertical-table.md) |
