@@ -15,10 +15,7 @@ DATA_SUFFIXES = {'.dta', '.csv', '.tsv', '.txt', '.xlsx', '.xls', '.parquet', '.
 NON_DATA_SUFFIXES = {'.do', '.py', '.r', '.js', '.ts', '.ps1', '.bat', '.cmd', '.log',
                      '.smcl', '.md', '.rtf', '.docx', '.pdf', '.pptx', '.html', '.png',
                      '.jpg', '.jpeg', '.svg', '.eps', '.tif', '.tiff', '.webp', '.pyc'}
-COMMON_GLOBALS = {'REPRO', 'ROOT', 'DATA', 'RAW', 'TEMP', 'FINAL', 'DO', 'CODE',
-                  'RESULT', 'TABLE', 'FIGURE', 'LOGROOT', 'YEAR_MIN', 'YEAR_MAX',
-                  'X', 'CONTROLS', 'PANEL', 'ENTITY', 'TIME', 'ABSORB', 'CLUSTER',
-                  'HDFE', 'COEFLABELS', 'SAMPLE_IDS'}
+OLD_HELPERS = {'ensure_dir', 'next_log', 'start_run', 'record_result', 'save_sample_ids', 'finish_run'}
 LEGACY_GLOBALS = {'RUNROOT', 'RUNTEMP', 'RUNRESULT', 'RUNLOG', 'RUNPANEL', 'MASTER_RUNNING'}
 
 
@@ -103,9 +100,6 @@ def inspect(root, legacy_bundles=()):
                 elif re.search(r'汇编|结果汇总|完整结果|候选|诊断|导出|^表\d', name):
                     warnings.append('初稿中的结果文档需核实来源/授权，AI导出应进测试：' + relative)
     small_code = []
-    settings_path = root / 'do/01_统一设置.do'
-    settings = stata_commands(settings_path.read_text(encoding='utf-8-sig', errors='replace')) if settings_path.is_file() else ''
-    shared_programs = {'save_sample_ids'} | set(re.findall(r'^\s*program\s+(?:define\s+)?(\w+)\b', settings, re.M))
     for folder in ("do", "code"):
         base = root / folder
         if not base.is_dir():
@@ -119,12 +113,8 @@ def inspect(root, legacy_bundles=()):
                     issues.append("现用目录需平铺；已有上游模块包应先登记依赖并显式保留：" + relative)
             elif folder == "do" and path.suffix.lower() != ".do":
                 issues.append("do只放.do及唯一README.md入口说明：" + relative)
-            elif folder == "do" and re.search(r"(?:^|_)(?:T\d+|表\d+|\d{2})\.do$", path.name, re.IGNORECASE):
-                issues.append("逐表do文件名缺少具体表格主题：" + relative)
-            elif folder == "do" and re.search(r"(?:^|_)T\d+_", path.name, re.IGNORECASE):
-                issues.append("现用逐表do应按00_、01_、02_两位序号开头：" + relative)
-            elif folder == 'do' and path.name != '主程序.do' and not re.match(r'^\d{2}_.+\.do$', path.name):
-                issues.append('do需按两位工作序号开头并写明主题：' + relative)
+            elif folder == 'do' and not re.match(r'^【?\d{8}】?_?.+\.do$', path.name):
+                warnings.append('主do按 YYYYMMDD_论文名.do 命名（stata-do-my-style）：' + relative)
             if folder == "code" and path.name.startswith("来源_"):
                 warnings.append("来源副本需判断现用/历史，不能据文件名删除：" + relative)
             elif folder == "code" and path.is_file() and not re.match(r"^\d{2}_[^\.]+\.[^\.]+$", path.name):
@@ -140,41 +130,22 @@ def inspect(root, legacy_bundles=()):
                 prefix = r'^\s*(?:(?:capture|cap|quietly|qui|noisily|noi)\s+)*'
                 for match in re.finditer(prefix + r'(preserve|restore)\b', commands, re.M | re.I):
                     issues.append('禁用数据现场命令' + match.group(1).lower() + '：' + relative)
-                for match in re.finditer(r'^\s*(?:(?:quietly|qui|noisily|noi)\s+)*(capture|cap)\b', commands, re.M | re.I):
-                    issues.append('do中不使用capture：' + relative)
+                for match in re.finditer(r'^\s*(?:(?:quietly|qui|noisily|noi)\s+)*(?:capture|cap)\b(?!\s+mkdir\b)', commands, re.M | re.I):
+                    issues.append('do中不用capture掩盖报错（仅 cap mkdir 例外）：' + relative)
                 for macro in LEGACY_GLOBALS:
                     if re.search(r'\$\{?' + macro + r'\b|\bglobal\s+' + macro + r'\b', commands):
                         issues.append('不再使用运行状态宏' + macro + '：' + relative)
-                if path.name in {'00_统一设置.do', '00_主程序.do'}:
-                    issues.append('旧编号需改为01_统一设置.do或主程序.do：' + relative)
-                if path.name != '01_统一设置.do':
-                    setup = re.search(prefix + r'(?:do|run)\s+[^\n]*01_统一设置\.do', commands, re.M | re.I)
-                    if path.name != '主程序.do' and not setup:
-                        issues.append('独立do须先读取01_统一设置.do：' + relative)
-                    if setup:
-                        setup_path = re.sub(prefix + r'(?:do|run)\s+', '', setup.group(), flags=re.I)
-                        if not re.match(r'^[\"\']?(?:[A-Za-z]:[\\/]|/|\\\\)', setup_path):
-                            issues.append('首次读取统一设置须用绝对路径，不能依赖尚未定义的宏：' + relative)
-                    data_input = re.search(prefix + r'(?:use|import\s+(?:delimited|excel|sas|spss|haver))\s+', commands, re.M | re.I)
-                    if path.name != '主程序.do' and not data_input:
-                        issues.append('独立do须显式读取数据（use/import）：' + relative)
-                    if setup and data_input and setup.start() > data_input.start():
-                        issues.append('须先读取统一设置再读取数据：' + relative)
-                    regression = re.search(prefix + r'(?:reghdfe|regress|reg|xtreg|csdid|did2s|eventstudyinteract|did_multiplegt_dyn)\b', commands, re.M | re.I)
-                    if data_input and regression and data_input.start() > regression.start():
-                        issues.append('回归前须先显式读取输入数据：' + relative)
-                    if re.search(r'\$\{?CONTROLS\b', commands) and not re.search(prefix + r'global\s+CONTROLS\b', settings, re.M):
-                        issues.append('控制变量宏CONTROLS未在01统一设置定义：' + relative)
-                    if re.search(r'\$\{?X\b', commands):
-                        issues.append('控制变量宏统一为$CONTROLS，不再使用$X：' + relative)
-                    for match in re.finditer(prefix + r'global\s+(\w+)\b', commands, re.M | re.I):
-                        if match.group(1) in COMMON_GLOBALS:
-                            issues.append('公共设置global ' + match.group(1) + '须集中01：' + relative)
-                    for match in re.finditer(prefix + r'program\s+(?:define\s+)?(\w+)\b', commands, re.M | re.I):
-                        if match.group(1) in shared_programs:
-                            issues.append('共用程序' + match.group(1) + '须集中01：' + relative)
-                elif re.search(prefix + r'(?:use|import|reghdfe|regress|xtreg)\b', commands, re.M | re.I):
-                    issues.append('01统一设置不加载数据或估计模型：' + relative)
+                for match in re.finditer(prefix + r'program\s+(?:define\s+)?(\w+)\b', commands, re.M | re.I):
+                    if match.group(1) in OLD_HELPERS:
+                        issues.append('按 stata-do-my-style 不写program助手' + match.group(1) + '：' + relative)
+                if re.search(prefix + r'(?:do|run)\s+[^\n]*01_统一设置\.do', commands, re.M | re.I):
+                    warnings.append('旧结构：读取01_统一设置.do；最终do改为一个主do（stata-do-my-style）：' + relative)
+                data_input = re.search(prefix + r'(?:use|import\s+(?:delimited|excel|sas|spss|haver))\s+', commands, re.M | re.I)
+                regression = re.search(prefix + r'(?:reghdfe|regress|reg|xtreg|csdid|did2s|eventstudyinteract|did_multiplegt_dyn)\b', commands, re.M | re.I)
+                if regression and not data_input:
+                    issues.append('do须显式读取数据（use/import）：' + relative)
+                if data_input and regression and data_input.start() > regression.start():
+                    issues.append('回归前须先显式读取输入数据：' + relative)
     result = root / "result"
     if result.is_dir():
         for path in sorted(result.iterdir()):
@@ -219,15 +190,11 @@ def inspect(root, legacy_bundles=()):
         parents = {path.parent for path in management_targets.values()}
         if len(parents) != 1 or next(iter(parents)).parent != (root / '测试/初稿整理').resolve():
             warnings.append('两张清单必须位于测试/初稿整理下的同一现用文件管理包')
-    has_do = any((root / 'do').glob('*.do'))
-    if has_do:
-        filenames += ["do/00_导入原始数据与构建.do", "do/01_统一设置.do",
-                      "do/02_变量定义.do", "do/03_描述性统计.do"]
     for filename in filenames:
         if not (root / filename).is_file():
             warnings.append("尚未建立或未使用新约定：" + filename)
-    if has_do and not list((root / 'do').glob('04_*基准*.do')):
-        warnings.append('尚未建立或未使用新约定：do/04_具体主题的基准回归.do')
+    if (root / 'do/01_统一设置.do').is_file():
+        warnings.append('旧结构：do/01_统一设置.do；最终do改为一个主do（stata-do-my-style），旧文件按归档流程处理')
     return {"root": str(root), "scope": "数据归位、初稿误放风险、常见Python输出变量的初稿字面路径、do静态入口及不超过10MiB的现用代码完全重复检查；不覆盖动态路径及显式登记历史源包内部，不要求预建未使用目录，不判断稿件作者/写入授权，不证明Stata独立运行",
             "status": "NEEDS_ATTENTION" if issues or warnings or duplicates else "STRUCTURE_PASS",
             "issues": issues, "warnings": warnings, "duplicates": duplicates,

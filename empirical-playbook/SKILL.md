@@ -9,7 +9,7 @@ description: "实证顶刊做法库与不显著诊断：检索中英文经济、
 
 - **规则优先级：** 用户本轮明确指示 > 项目 README、CLAUDE 与实际设置 > 本 skill > references。
 - **只读：** 本 skill 读取项目代码、日志、结果底表、样本记录和稿件，检索文献，输出诊断与借鉴方案；**不改代码、不跑回归、不建或改数据**。用户选定方案后，按 [empirical-research](../empirical-research/SKILL.md) 在原测试包中估计并全量保存；目录与任务包按 [empirical-project-init](../empirical-project-init/SKILL.md)。
-- **默认研究设定沿用 empirical-research S9**：基准四列、统一样本 `_sample == 1`、机制一步法（只估 X → M）、`$CONTROLS`、do 不用 capture、esttab 保留常数项、不导 LaTeX。文献做法与 S9 不同时（三步中介、分样本各用各的样本、只报最严格一列等），在方案中写明差异，由用户决定，不自行改默认。
+- **默认研究设定沿用 empirical-research S9**：基准四列、统一样本 `sample == 1`、机制一步法（只估 X → M）、`$控制变量`、do 不用 capture、esttab 保留常数项、不导 LaTeX。文献做法与 S9 不同时（三步中介、分样本各用各的样本、只报最严格一列等），在方案中写明差异，由用户决定，不自行改默认。
 - **诊断默认只在对话给出。** 用户要求保存时，写入该问题原任务包（沿用原包与原开始日期）的 `诊断与借鉴方案.md`；没有原包时按 S2 判断类别后询问是否新建。
 - **改 skill 本身**（入库新做法、修改 references）属于修改用户 skill：用户明确要求“入库/更新方法库”时直接写；只要求“看看顶刊怎么做”时先在对话汇总，再问是否入库。写入后提示同步到 GitHub 仓库 `nanashichu/skills`。拿不准的设计取舍先问，不按自己判断改。
 

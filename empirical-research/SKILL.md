@@ -61,9 +61,9 @@ description: "实证研究计算与结果：用Python构建/调整变量与样�
 
 ## 6 最终 do 与 Stata 核对（仅在研究版本确认或用户明确要求时）
 
-- 触发条件见 S7。确认后冻结本轮输入与设定，生成/同步最终逐表 do，核对 Python 的实际样本、b、SE、协方差、自由度、簇数、权重和 R²；保留原生日志、.ster 及真实 e(sample)。
+- 触发条件见 S7。确认后冻结本轮输入与设定，生成/同步最终主 do（从原始数据导入写起），运行后用 log 与 esttab 输出核对 Python 的 N、b、SE、簇数、权重和 R²；原生日志留原测试包。
 - 高成本置换/bootstrap 不自动在 Stata 重跑，登记已核对与未核对范围。没有实际执行时写“do 已生成，Stata 核对未运行”。
-- do 的写法、路径占位符与验收按 S8；目录与 01 统一设置结构见 empirical-project-init。
+- do 的写法与验收按 S8 和 [stata-do-my-style](../stata-do-my-style/SKILL.md)；目录与主 do 模板见 empirical-project-init。
 
 ## 7 按任务读取
 
@@ -79,7 +79,7 @@ description: "实证研究计算与结果：用Python构建/调整变量与样�
 | rangestat 排除自身、逐观测影响、排序删除诊断 | [通用诊断说明](references/regression-loo-diagnostic.md)；[Python 入口](scripts/regression_loo_diagnostic.py)：保留原模型与全部阶段，删后 p 标为探索性 |
 | 从保存估计补 R²、只重新导表 | [项目经验§6](references/project-experience.md) 与 [导出指南](references/report-generation.md) |
 | Python 实现、PyFixest 用法与 Stata 口径对照 | [Python 方法](references/python-methods.md) |
-| 最终 do 核对阶段的 Stata 写法 | [Stata 方法](references/stata-methods.md)：仅研究版本确认或用户明确要求时 |
+| 最终 do 核对阶段的 Stata 写法 | 版式按 [stata-do-my-style](../stata-do-my-style/SKILL.md)；命令细节见 [Stata 方法](references/stata-methods.md)：仅研究版本确认或用户明确要求时 |
 | 上市公司数据（stkcd、CSMAR 字段与单位、控制变量合理范围、金融/ST 剔除） | [上市公司数据经验](references/listed-firm-data.md) |
 | 本机 Stata/Python 路径与已装包 | [本地环境](references/local-environment.md)：本机记录，用前核实 |
 
@@ -157,25 +157,23 @@ description: "实证研究计算与结果：用Python构建/调整变量与样�
 
 ### S8 最终 do 写作与验收（仅核对阶段适用）
 
-- **参考表头**：每份 do 在首个书签和命令前用 `/* ... */` 写 `project`、`Author`、`E-email`、`Creation Date`、`Modification Date`、`Do-file version`、`References`、`Input`、`Output`；输入输出写本文件实际依赖与产物；未知项写“未记录”，不抄示例个人信息，不把磁盘时间当原始创建日期；改动后更新修改日期，并区分文档整理与估计口径变化。
-- **阅读路线**：表头后写目的、必要输入、主要步骤、关键公式与单位、样本限制、关键输出和单独运行方法。
-- **原生书签**：每个实际工作部分前独占一行 `**# 01 中文小标题`，长文件用 `**# 04.1 合并某来源` 区分来源、模型组或表；单文件内编号唯一并按执行顺序递增；`* === [书签]` 等普通注释不算。
-- **口径可追踪**：计算旁写公式、单位、时点、缺失处理和样本限制；合并旁写来源文件、键、未匹配处理；多来源补值写明优先级。关键口径不藏进通用循环、动态生成代码或另一门语言。路径与共用控制取自统一设置。
-- **独立运行**：每个分析 do 先用绝对路径 `do` 读取 `01_统一设置.do`，再显式 `use`/`import` 自己的输入；不依赖主程序残留的数据、宏、frame、postfile 句柄、program 或估计对象；自开自关日志和 postfile。
-- **禁用 preserve/restore**：数据切换写成 `save "$TEMP/阶段数据.dta"` + `use`。允许 `estimates store/save/restore`，估计对象存 TEMP。e(sample) 由 01 中的共用程序 `frame put` 真实键 → 存 TEMP → drop frame。program 内用全局 `$TEMP`，避免外层 local 展开为空把文件写到磁盘根。
-- 通用辅助程序只在 01 实现一次；表专用交互、分组、筛选与差异检验留在对应 do。统一控制变量必须在 01 中有可执行的 `global CONTROLS 真实变量列表`，全项目用 `$CONTROLS` 引用；do 中不使用 capture，目录、日志与文件检查用 01 的 `ensure_dir`、`next_log` 和 mata，FE、聚类、标签、PANEL、辅助程序逐项核对。
-- 不得用历史生成脚本或快照覆盖整改后的现用 do；改名同步调用、导航和图表对应清单，旧入口归档保留原字节。
-- RTF 等导出段默认注释，只有用户授权相应表与格式后才启用。
-- 特征化事实不生成 do；do 只含构建、设置、变量定义、描述统计、回归与识别图、结果提取。
-- **验收**：新开 Stata 会话单独运行某表 do；逐项报告已改、实际运行通过、尚未验证的范围。只改注释时逐行核对可执行命令不变；静态检查、字节检查不能称为复现，发现遗漏不能沿用上轮“已完成”。可读性测试：不依赖本次对话的读者能答出 Y 怎么算、控制变量是什么、样本怎样筛、最终读哪份 DTA。
+- **写法以 [stata-do-my-style](../stata-do-my-style/SKILL.md) 为准**：一个项目一个主 do（模板见 empirical-project-init 的 `templates/do/论文名_主程序.do`；多个项目共用的原始库清洗可另放一个数据处理 do），从原始数据导入写起，按“导入数据 → 处理数据 → 回归分析 → 异质性 → 机制 → 稳健性”用五行横幅和 `**#` 书签分节；路径用 `$path1 $DR $DT $DF`，控制变量用 `global 控制变量`，回归用 `reghdfe` + `est store` + `esttab`。
+- **不写**：`program define` 助手（ensure_dir、next_log、start_run、record_result、save_sample_ids 等）、mata/frame/postfile、`01_统一设置.do` 加逐表拆分和只会挨个 `do` 的主程序、`isid`/`assert` 检查墙、冻结输入加 sNNN 样本标记、文件头后的目的/步骤/时点/边界大段说明、在 do 里保存 .ster、b/V 或 Python 参考差值。
+- **口径照样可追踪**：Y、X、控制、样本筛选、FE、聚类与 Python 确认版一致。变量构造写在 `/*======变量名========*/` 小标题下，旁边用 `//` 注明原始字段含义、公式、单位和来源；merge 写清来源文件与键，后跟 `drop if _merge==2`、`drop _merge`，必要时 `tab _merge` 的结果用 `//` 贴在下面。只有 Stata 做不了的步骤（如文本分析、爬虫）才导入 Python 生成的中间文件，并注释生成脚本的位置。
+- **分节可单独运行**：每个分析小节以 `cd $DT` + `use 面板,clear` 开头，运行文件头路径段后即可单独运行该节；数据切换写成 `save` + `use`，不用 preserve/restore。
+- **样本**：回归前按第 4 列所需全部变量非缺失和筛选条件生成 `egen nmiss=rowmiss(Y X $控制变量)` + `gen sample=1 if nmiss==0&筛选条件`，四列及后续各节统一 `if sample==1`；Python 侧保存的逐模型真实样本 ID 用于核对，不写进 do。
+- **结果核对在 do 外完成**：运行后读取 log 与 esttab 输出，与 Python 底表逐项比对 b、SE、N、簇数、R²，差异记在原测试包的核对说明里。
+- RTF 等导出段默认注释，只有用户授权相应表与格式后才启用；特征化事实不生成 do。
+- 不得用历史生成脚本或快照覆盖整改后的现用 do；改名同步图表对应清单，旧版归档保留原字节。
+- **验收**：新开 Stata 会话从头运行主 do（或运行路径段后单独运行对应小节）；逐项报告已改、实际运行通过、尚未验证的范围。只改注释时逐行核对可执行命令不变；静态检查不能称为复现。可读性测试：不依赖本次对话的读者能从 do 里看出原始数据从哪来、Y 怎么算、控制变量是什么、样本怎样筛。
 
 ### S9 默认研究设定（项目另有要求或用户说明时以其为准）
 
 - **基准回归默认四列**：(1) 无控制无FE (2) 有控制无FE (3) 无控制有FE (4) 有控制有FE（首选）；不同项目的列数以稿件和项目 CLAUDE.md 为准。
-- **统一样本**：各列及后续机制、稳健、异质和描述性统计默认使用同一 `_sample == 1`（第 4 列所需全部变量非缺失）；偏离由用户说明，并在表注和图表对应清单登记。Python 估计同样以此为默认样本，并照常保存每个模型的真实样本 ID。
+- **统一样本**：各列及后续机制、稳健、异质和描述性统计默认使用同一样本（第 4 列所需全部变量非缺失，do 中为 `sample == 1`）；偏离由用户说明，并在表注和图表对应清单登记。Python 估计同样以此为默认样本，并照常保存每个模型的真实样本 ID。
 - **机制检验默认一步法**：只估计 X 对当期机制变量 M 的影响；不把 M 放进基准回归，不做第二步，除非项目另有要求。
-- **控制变量宏**统一为 `global CONTROLS`，全项目引用 `$CONTROLS`。
-- **Stata do 不使用 capture**；目录、日志、文件检查用 01 的助手。
+- **控制变量宏**统一为 `global 控制变量`，全项目引用 `$控制变量`。
+- **Stata do 不用 capture 掩盖报错**；只在文件头建目录时用 `cap mkdir`。
 - **回归表保留常数项和控制变量系数**：esttab 不用 `keep()`、`drop(_cons)`。
 - **样本删除可追溯**：raw 只读；构建面板时可以 drop，但每步前后记录 N 与删除数，登记到项目 CLAUDE.md 的样本筛选表。
 - **不导出 LaTeX**；排版文档按 S7 只在用户明确要求时生成 Word/PDF/RTF。

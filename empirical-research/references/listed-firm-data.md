@@ -15,7 +15,7 @@ panel['stkcdcode'] = panel['stkcd'].astype(int)
 
 ```stata
 xtset stkcdcode year
-reghdfe y x $CONTROLS, absorb(stkcdcode year) vce(cluster stkcdcode)
+reghdfe y x $控制变量, absorb(stkcdcode year) vce(cluster stkcdcode)
 ```
 
 - `stkcd`：字符串，如 "000001"，用于合并和显示。
@@ -70,5 +70,5 @@ reghdfe y x $CONTROLS, absorb(stkcdcode year) vce(cluster stkcdcode)
 崩盘风险项目的控制变量约定：被解释变量为 DUVOL 时，滞后崩盘风险控制仍用 `L_NCSKEW_Mdeq`，不换成 `L_DUVOL_Mdeq`。
 
 ```stata
-global CONTROLS L_NCSKEW_Mdeq L_sigma L_ret L_dturn L_size L_lev L_roa L_bm
+global 控制变量 L_NCSKEW_Mdeq L_sigma L_ret L_dturn L_size L_lev L_roa L_bm
 ```

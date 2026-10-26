@@ -1,28 +1,29 @@
 # Stata 实证方法详解
 
-> 使用阶段：依据[SKILL.md后端规则](../SKILL.md)，以下命令仅用于最终研究版本确认后的do核对/复现，或用户直接要求的Stata操作。日常筛选、数据调整、全套结果重跑及导表使用Python；已有ado或现用do不触发原生重跑。高成本置换/bootstrap不自动重复，核对覆盖范围和未执行项须明确记录。
+> 使用阶段：依据[SKILL.md后端规则](../SKILL.md)，do 的整体版式（文件头、`**#` 书签、导入清洗合并的写法）按 [stata-do-my-style](../../stata-do-my-style/SKILL.md)，本文件只给命令写法。以下命令仅用于最终研究版本确认后的do核对/复现，或用户直接要求的Stata操作。日常筛选、数据调整、全套结果重跑及导表使用Python；已有ado或现用do不触发原生重跑。高成本置换/bootstrap不自动重复，核对覆盖范围和未执行项须明确记录。
 
 ## 0. 默认回归规范（项目另有要求时以项目为准）
 
 - 非0/1被解释变量用 `reghdfe`，固定效应写在 `absorb()`，不用 `i.year` 生成年份虚拟变量；0/1被解释变量用 `probit` 或面板 `xtprobit`（随机效应）。
-- 控制变量统一用 01_统一设置.do 中的 `global CONTROLS`，全项目引用 `$CONTROLS`。
-- 不使用 `capture`：不用它容错或掩盖报错；目录、日志、文件存在性检查用 01 的 `ensure_dir`、`next_log` 或 mata `fileexists()`。
+- 控制变量在主 do 的处理数据一节定义 `global 控制变量`，全文件引用 `$控制变量`。
+- 不用 `capture` 容错或掩盖报错；只在文件头建目录时用 `cap mkdir`。
 - 基准回归默认四列：(1) 无控制无FE（`reg`）(2) 有控制无FE（`reg`）(3) 无控制有FE（`reghdfe`）(4) 有控制有FE（`reghdfe`，首选）。
-- 统一样本：00 构建时标记 `_sample`（第4列所需全部变量非缺失），四列及后续机制、稳健、异质默认都用 `if _sample == 1`；偏离须用户说明。
+- 统一样本：回归前 `egen nmiss=rowmiss(y x $控制变量)` + `gen sample=1 if nmiss==0&筛选条件`（第4列所需全部变量非缺失），后续机制、稳健、异质、描述统计默认都用 `if sample == 1`；偏离须用户说明。
 - esttab 保留常数项和控制变量系数，不用 `keep()`、`drop(_cons)`；`reghdfe absorb()` 不生成年份系数，不写 `drop(yr_*)`。
 
 ```stata
-reg     y x           if _sample == 1, vce(cluster $CLUSTER)
-eststo col1
-reg     y x $CONTROLS if _sample == 1, vce(cluster $CLUSTER)
-eststo col2
-reghdfe y x           if _sample == 1, absorb($ABSORB) vce(cluster $CLUSTER)
-eststo col3
-reghdfe y x $CONTROLS if _sample == 1, absorb($ABSORB) vce(cluster $CLUSTER)
-eststo col4
+reg     y x           if sample == 1, vce(cluster stk_id)
+est store r1
+reg     y x $控制变量 if sample == 1, vce(cluster stk_id)
+est store r2
+reghdfe y x           if sample == 1, absorb(stk_id year) vce(cluster stk_id)
+est store r3
+reghdfe y x $控制变量 if sample == 1, absorb(stk_id year) vce(cluster stk_id)
+est store r4
 
 * 导出段默认注释，用户明确授权本表RTF后启用
-esttab col1 col2 col3 col4 using "$TABLE/YYYYMMDD_表X_基准回归.rtf", replace ///
+cd $DF
+esttab r1 r2 r3 r4 using "YYYYMMDD_表X_基准回归.rtf", replace ///
     b(%9.4f) se(%7.4f) star(* 0.10 ** 0.05 *** 0.01) compress nogap ///
     stats(N r2, fmt(%9.0f %9.4f) labels("N" "R2")) varwidth(20) ///
     mtitles("无控制无FE" "有控制无FE" "无控制有FE" "有控制有FE") title("基准回归")
@@ -43,7 +44,7 @@ eststo: reghdfe y x1, absorb(firm year) vce(cluster firm)
 eststo: reghdfe y x1 x2, absorb(firm year) vce(cluster firm)
 eststo: reghdfe y x1 x2 x3, absorb(firm year) vce(cluster firm)
 
-esttab using "$TABLE/YYYYMMDD_表X_基准回归.rtf", replace ///
+esttab using "YYYYMMDD_表X_基准回归.rtf", replace ///
     b(%9.4f) se(%7.4f) star(* 0.10 ** 0.05 *** 0.01) compress nogap ///
     stats(N r2, fmt(%9.0f %9.4f) labels("N" "R2")) title("基准回归结果")
 ```
@@ -51,12 +52,12 @@ esttab using "$TABLE/YYYYMMDD_表X_基准回归.rtf", replace ///
 ### 1.2 控制变量组定义
 
 ```stata
-* 控制变量组统一在 01_统一设置.do 中定义
-global CONTROLS "L_size L_lev L_roa L_bm L_growth"
-global CONTROLS_FULL "$CONTROLS L_cash L_age L_board"
+* 控制变量组在主 do 的处理数据一节定义
+global 控制变量 "L_size L_lev L_roa L_bm L_growth"
+global 控制变量_扩展 "$控制变量 L_cash L_age L_board"
 
 * 使用
-reghdfe y x $CONTROLS, absorb(firm year) vce(cluster firm)
+reghdfe y x $控制变量, absorb(firm year) vce(cluster firm)
 ```
 
 ---
@@ -69,7 +70,7 @@ reghdfe y x $CONTROLS, absorb(firm year) vce(cluster firm)
 gen post = (year >= treatment_year) if !missing(treatment_year)
 replace post = 0 if missing(treatment_year)   // 从未处理组；按研究设计确认
 gen treat_post = treated * post
-reghdfe y treat_post $CONTROLS, absorb(firm year) vce(cluster firm)
+reghdfe y treat_post $控制变量, absorb(firm year) vce(cluster firm)
 ```
 
 ### 2.2 事件研究法
@@ -114,9 +115,9 @@ bacondecomp y treat_post, ddetail
 只看 X 对当期机制变量 M 的影响；X 的时点、控制、FE、聚类和样本与基准回归一致，M 不放进基准回归。
 
 ```stata
-reghdfe m x            if _sample == 1, absorb(firm year) vce(cluster firm)
+reghdfe m x            if sample == 1, absorb(firm year) vce(cluster firm)
 eststo mech1
-reghdfe m x $CONTROLS  if _sample == 1, absorb(firm year) vce(cluster firm)
+reghdfe m x $控制变量  if sample == 1, absorb(firm year) vce(cluster firm)
 eststo mech2
 ```
 
@@ -125,18 +126,18 @@ eststo mech2
 > 逐步回归只提供机制证据，不等于完整的中介因果链；解释边界见 CLAUDE_empirical_analysis §14。
 
 ```stata
-reghdfe y x $CONTROLS, absorb(firm year) vce(cluster firm)
+reghdfe y x $控制变量, absorb(firm year) vce(cluster firm)
 estimates store step1
-reghdfe m x $CONTROLS, absorb(firm year) vce(cluster firm)
+reghdfe m x $控制变量, absorb(firm year) vce(cluster firm)
 estimates store step2
-reghdfe y x m $CONTROLS, absorb(firm year) vce(cluster firm)
+reghdfe y x m $控制变量, absorb(firm year) vce(cluster firm)
 estimates store step3
 ```
 
 ### 3.3 Sobel 检验（仅两步法）
 
 ```stata
-sgmediation y, mv(m) iv(x) cv($CONTROLS)
+sgmediation y, mv(m) iv(x) cv($控制变量)
 ```
 
 ---
@@ -145,28 +146,28 @@ sgmediation y, mv(m) iv(x) cv($CONTROLS)
 
 ```stata
 * 1. 替换被解释变量
-reghdfe y_alt x $CONTROLS, absorb(firm year) vce(cluster firm)
+reghdfe y_alt x $控制变量, absorb(firm year) vce(cluster firm)
 
 * 2. 替换解释变量
-reghdfe y x_alt $CONTROLS, absorb(firm year) vce(cluster firm)
+reghdfe y x_alt $控制变量, absorb(firm year) vce(cluster firm)
 
 * 3. 滞后两期
 gen L2_x = L2.x
-reghdfe y L2_x $CONTROLS, absorb(firm year) vce(cluster firm)
+reghdfe y L2_x $控制变量, absorb(firm year) vce(cluster firm)
 
 * 4. 排除特定年份
-reghdfe y x $CONTROLS if year != 2020, absorb(firm year) vce(cluster firm)
+reghdfe y x $控制变量 if year != 2020, absorb(firm year) vce(cluster firm)
 
 * 5. 加入更多控制变量
-reghdfe y x $CONTROLS_FULL, absorb(firm year) vce(cluster firm)
+reghdfe y x $控制变量_扩展, absorb(firm year) vce(cluster firm)
 
 * 6. 改变聚类层级
-reghdfe y x $CONTROLS, absorb(firm year) vce(cluster province)
+reghdfe y x $控制变量, absorb(firm year) vce(cluster province)
 
 * 7. PSM-DID
-psmatch2 treat $CONTROLS, logit neighbor(1) ate
-pstest $CONTROLS, both graph
-reghdfe y treat_post $CONTROLS if _weight != ., absorb(firm year) vce(cluster firm)
+psmatch2 treat $控制变量, logit neighbor(1) ate
+pstest $控制变量, both graph
+reghdfe y treat_post $控制变量 if _weight != ., absorb(firm year) vce(cluster firm)
 ```
 
 ---
@@ -176,9 +177,9 @@ reghdfe y treat_post $CONTROLS if _weight != ., absorb(firm year) vce(cluster fi
 ### 5.1 分组回归
 
 ```stata
-reghdfe y x $CONTROLS if soe == 1, absorb(firm year) vce(cluster firm)
+reghdfe y x $控制变量 if soe == 1, absorb(firm year) vce(cluster firm)
 estimates store soe_yes
-reghdfe y x $CONTROLS if soe == 0, absorb(firm year) vce(cluster firm)
+reghdfe y x $控制变量 if soe == 0, absorb(firm year) vce(cluster firm)
 estimates store soe_no
 ```
 
@@ -186,7 +187,7 @@ estimates store soe_no
 
 ```stata
 * suest 不支持 reghdfe；用完全交互的合并模型检验组间差异（详见 group-difference-test.md）
-reghdfe y c.x##i.soe c.($CONTROLS)#i.soe, absorb(firm year#soe) vce(cluster firm)
+reghdfe y c.x##i.soe c.($控制变量)#i.soe, absorb(firm year#soe) vce(cluster firm)
 lincom x                   // 非国企组效应
 lincom x + 1.soe#c.x       // 国企组效应
 test 1.soe#c.x = 0         // 组间差异
@@ -196,7 +197,7 @@ test 1.soe#c.x = 0         // 组间差异
 
 ```stata
 gen x_group = x * group_var
-reghdfe y x group_var x_group $CONTROLS, absorb(firm year) vce(cluster firm)
+reghdfe y x group_var x_group $控制变量, absorb(firm year) vce(cluster firm)
 ```
 
 ---
@@ -261,5 +262,5 @@ gen F_x = F.x  // 前瞻
 | 赋值与比较混淆 | `if y = 1` | `if y == 1` |
 | merge 后不检查 | 直接使用或直接 assert | 先 `tab _merge` 看匹配比例，再按需 `assert` |
 | 用 capture 容错 | `capture reghdfe ...` 掩盖报错 | 不用 capture，让错误暴露后修正 |
-| local 引用少右引号 | `` `controls` `` | `` `controls' ``（项目控制变量用 `$CONTROLS`） |
+| local 引用少右引号 | `` `controls` `` | `` `controls' ``（项目控制变量用 `$控制变量`） |
 | by 前未排序 | `by id:` | `bysort id:` |
