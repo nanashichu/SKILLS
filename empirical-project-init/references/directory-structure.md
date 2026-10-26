@@ -11,7 +11,7 @@
 | data/raw | 外部原始数据，只读；格式按真实源数据 | 代码、日志、说明、文献、图表 |
 | data/temp | 候选与现用分析面板、变量、真实样本ID、底表及完整估计对象；采用状态另记 | do/code/logs/result子项目、RTF、图片、文档及渲染材料 |
 | data/final | 已有冻结DTA及用户另行明确要求冻结归档的新版本，平铺并保留旧版 | 子文件夹、样本ID、系数/图表底表、估计对象、候选面板 |
-| do | 00构建、01设置、02变量定义、03描述统计及后续逐表do；平铺，另可保留唯一README.md逐表入口 | 数据、日志、其他说明文件、Python、子目录 |
+| do | 现用主 do（`YYYYMMDD_论文名.do`），可另有一个数据处理通用库 do；平铺 | 数据、日志、其他说明文件、Python、子目录 |
 | code | 两位序号加用途的完整现用代码链及必要配置；平铺 | 历史来源、旧审计、一次性整理脚本和缓存 |
 | result/table | 用户采用且授权导出的排版表格，如RTF、单表DOCX/PDF | CSV底表、估计对象、未采用表格、完整候选汇编及预览 |
 | 完整实证 | 每次授权生成的完整实证汇编Word阅读副本，日期前置，复制与原件哈希一致 | 单表、PDF、数据、代码、日志、回执及渲染 |
@@ -29,29 +29,20 @@
 
 所有固定用途目录按实际材料和程序需要创建；不为结构检查预建空目录。仅独立研究问题无原包时才建测试任务包；不新增output、data/input、rules、reports或空do。共享大库记录真实路径、版本、来源和指纹，不逐版复制。
 
-所有Stata公共宏及助手由01_统一设置.do定义：
+最终 do 按 [stata-do-my-style](../../stata-do-my-style/SKILL.md) 写：一个项目一个主 do，文件头只用 `local mainDir` + `cap mkdir` + 四个 global：
 
 | 宏 | 位置/用途 |
 |---|---|
-| REPRO / ROOT | 项目根，REPRO可由明确项目入口提供 |
-| DATA / RAW / TEMP / FINAL | 数据根 / 原始 / 按TASK_DATA_PATH指向data/temp中的实际数据任务 / 已有冻结归档 |
-| DO / CODE | 未采用时均指分类测试包根；采用后按授权分别用do / code |
-| RESULT / TABLE / FIGURE | 未采用时均指测试包根；采用后按授权用result / 排版表 / 图 |
-| LOGROOT | 任何阶段均为原测试/分析类别/YYYYMMDD_主题或其运行子目录；采用后也不转写根logs |
-| YEAR_MIN / YEAR_MAX | 已约定样本年份 |
-| CONTROLS / PANEL | 已约定控制变量列表 / PANEL_RELATIVE_PATH指定的实际输入或本阶段新面板 |
-| ensure_dir / next_log / save_sample_ids | 不用capture的目录创建、未占用日志编号、真实样本ID助手 |
-| ENTITY / TIME / ABSORB / CLUSTER / HDFE | 真实面板键、FE、聚类和公共回归选项 |
-| SAMPLE_IDS / COEFLABELS | 真实观测键 / 统一系数标签 |
+| path1 | 工作根；未采用时指原测试包，采用后按授权改为项目根 |
+| DR | 原始文件：data/raw 或共享原始库，只读 |
+| DT | 临时文件：TASK_DATA_PATH 指定的 data/temp 实际位置，清洗中间件与合并面板都存这里 |
+| DF | 最终输出：未采用时为测试包，采用并授权导出后为 result/table |
 
-不设置RUNROOT/RUNTEMP/RUNRESULT/RUNLOG/RUNPANEL或MASTER_RUNNING。
+控制变量在主 do 处理数据一节写 `global 控制变量`；FE、聚类、样本条件直接写在回归命令里。不设 ROOT/RAW/TEMP/LOGROOT/CONTROLS/ABSORB/CLUSTER 等宏，不写 ensure_dir/next_log/save_sample_ids 等助手，不设 RUNROOT 或 MASTER_RUNNING。
 
-核对模板用`TASK_NAME_DATE`明确原测试证据包名；继续、采用及获授权重跑不改包名，仅新独立研究问题且无可复用包才命名新包。TASK_DATA_PATH始终指定data/temp中的实际数据位置，PANEL_RELATIVE_PATH指定本次真实面板；LOGROOT留原证据包，重跑使用包内未占用文件或运行子目录，或先保留被替代记录；PANEL读取本轮明确的实际输入，构建模板只保存到本阶段未占用的新DTA路径。模板RTF段默认注释，只有相应导出已获用户明确授权才启用，已有正式表先归档。
+核对时用`TASK_NAME_DATE`明确原测试证据包名；继续、采用及获授权重跑不改包名，仅新独立研究问题且无可复用包才命名新包。原生日志留原测试包。RTF 段默认注释，只有相应导出已获用户明确授权才启用，已有正式表先归档。
 
-固定工作顺序：00_导入原始数据与构建.do、01_统一设置.do、02_变量定义.do、03_描述性统计.do、04起后续分析；可选主程序.do仅负责调用。文件工作序号与论文表号分别记录，不能机械要求相同。每张表的全部列在同一do；名字写清主题，改名同步调用和对应清单。
-
-每个构建/分析do先do绝对路径的01设置，再use/import自己的输入；00也先读01。设置本身不use数据或做回归。禁用preserve/restore，明确写出TEMP中间文件的save/use；estimates store及estimates restore允许。共用真实样本助手放01，保存结果到按阶段设置的$TEMP。未采用但用户明确要求Stata/do核对时，先定位并复用本研究问题的测试任务目录，所有do和本轮01设置都生成在同一包；把每个模板首个do加载语句中的正式do/01绝对路径改为该包内01的真实绝对路径，禁止加载正式目录旧设置。TASK_DATA_PATH使用data/temp中的真实数据任务路径，TASK_STAGE未采用时填trial，DO/CODE/RESULT/TABLE/FIGURE和日志均指向分类测试包，TEMP另指data/temp中的数据任务；输入可只读引用既有源，新增DTA与中间文件集中data/temp；测试包登记引用。运行前逐项展开检查；采用后才按范围生成正式路径。逐表do不得依赖前一文件或主程序留下的状态。
-
+主 do 按“导入数据 → 处理数据 → 回归分析 → 异质性 → 机制 → 稳健性”用 `**#` 书签分节，论文表号写在小节书签里（如 `**# 3.1基准回归（表3）`），图表对应清单登记“主 do + 书签名”。每个分析小节以 `cd $DT` + `use 面板,clear` 开头，运行路径段后可单独运行；不用 preserve/restore，数据切换写 `save`/`use`。
 
 测试分类层采用七个固定名称。TASK_CATEGORY填实际类别；TASK_NAME_DATE保留日期前置包名；MANAGEMENT_TASK指唯一现用文件管理包名；它位于`测试/分析类别/YYYYMMDD_文件管理/`，按类别定义（目录/文件/skill管理）归入初稿整理。
 

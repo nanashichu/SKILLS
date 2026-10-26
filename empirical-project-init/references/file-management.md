@@ -18,7 +18,7 @@
 
 ## 控制现用代码数量的依据
 
-逐表 do 必须保留；现用上游代码包括从原始材料到关键中间/最终样本的真实构建链，以及全部事实图表代码。并非只有被主程序直接调用的文件才有价值。
+现用主 do 必须保留；现用上游代码包括从原始材料到关键中间/最终样本的真实构建链，以及全部事实图表代码。并非只有被主程序直接调用的文件才有价值。
 
 同一功能以一个明确现用实现为准。code现用脚本及必要配置按00_、01_、02_开头并写明用途；改名同步核对导入、动态加载、命令行、生成和打包筛选规则。正式历史实现、原路径快照、portable复制版、旧验收包装器、一次性搬迁/修复脚本移出日常code，集中到日期归档的来源代码区；不要另建几十个归档目录。归档前查清现用依赖；仍需读取的历史文件保留原字节，并将对应配置或调用指向归档位置，不能中断现用链路。
 
@@ -58,23 +58,7 @@ manuscript_version,item_id,column_model,entry,input_paths,result_data,model_obje
 
 ## 每列模型的真实样本
 
-在实际估计完成后、重新排序/替换数据或下一次估计前，立即用估计器真实样本保存ID。键按观测单位确定，不能默认每个项目都是企业年份。Stata普通e(sample)示例：
-
-```stata
-* 紧跟该列估计命令；ID变量必须来自真实观测键
-* 以下程序只在01_统一设置.do中定义（01开头已 program drop _all，不用capture）；每张表直接调用它
-program define save_sample_ids
-    syntax, Model(name)
-    tempname sample_frame
-    frame put $SAMPLE_IDS if e(sample), into(`sample_frame')
-    frame `sample_frame': isid $SAMPLE_IDS
-    frame `sample_frame': save "$TEMP/`model'_sample_ids.dta", replace
-    frame drop `sample_frame'
-end
-
-* 估计后立即调用；模型名含真实表号及列号，避免跨表覆盖
-save_sample_ids, model(T03_col1)
-```
+在实际估计完成后、重新排序/替换数据或下一次估计前，立即用估计器真实样本保存ID。键按观测单位确定，不能默认每个项目都是企业年份。日常估计在 Python 中保存逐模型样本 ID；最终 do 里只按 stata-do-my-style 写 `gen sample=1 if e(sample)==1`，核对时用 log 中的 N 与 Python 样本 ID 比对，不在 do 里写 frame/program 保存样本。
 
 各列分别保存或将带模型ID的样本集合存成长表，并核对观测数及唯一性。筛选标记、共同面板和N不是实际估计样本；reghdfe单例剔除等可能造成差异。估计器不提供e(sample)时按其接口取实际使用行并说明，不能造一个“看起来N相同”的样本。历史缺失样本ID时明确记未补齐；需要真实重跑才能补齐，不以文件结构PASS掩盖缺口。
 
@@ -100,4 +84,4 @@ save_sample_ids, model(T03_col1)
 
 > 初稿由我放自己写的论文，AI默认只读。同一研究问题跨天跨对话复用原包，新增数据、底表与对象集中data/temp，代码、日志和文档留原包；只读查询不建目录；共享大库只读引用。只有我明确结果或某项可以用了，才按范围提取必要版本：数据到data/temp、Python到code、Stata.do到do、排版表到table、图到figure，原测试包保留。按实际样本保存ID，未经我确认不删除已有文件。
 
-每个逐表do先读取01_统一设置.do，再use所需输入；新Stata会话能单独执行。禁用preserve/restore这一对命令，数据切换明确save到temp和use；允许estimates store/restore。01集中公共宏、控制变量和真实样本助手；frame样本复制需要Stata16或以上，低版本改用明确的temp文件读写并核验现场恢复。
+最终 do 按 stata-do-my-style：一个项目一个主 do，从原始数据导入写起；每个分析小节以 `cd $DT` + `use 面板,clear` 开头，运行文件头路径段后可单独运行。不用preserve/restore，数据切换明确save/use；不写program助手。

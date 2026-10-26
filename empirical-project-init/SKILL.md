@@ -1,6 +1,6 @@
 ---
 name: empirical-project-init
-description: "实证项目初始化与文件管理（int/init）：新建实证项目、整理已有项目目录、按论文逐表配置do、收尾归档验收。触发词：初始化实证项目、优化int、整理项目文件、归档验收。维护唯一现用入口、data/raw temp final、逐表do、图表—数据—代码对应清单及经确认的清理流程。用户已给路径和授权时直接推进；整理文件不等于修改研究口径或运行新实证。跑回归、筛规格、汇报结果用 empirical-research。"
+description: "实证项目初始化与文件管理（int/init）：新建实证项目、整理已有项目目录、配置最终主do、收尾归档验收。触发词：初始化实证项目、优化int、整理项目文件、归档验收。维护唯一现用入口、data/raw temp final、按我的写法风格的主 do、图表—数据—代码对应清单及经确认的清理流程。用户已给路径和授权时直接推进；整理文件不等于修改研究口径或运行新实证。跑回归、筛规格、汇报结果用 empirical-research。"
 ---
 
 # 实证项目初始化与文件管理
@@ -8,7 +8,7 @@ description: "实证项目初始化与文件管理（int/init）：新建实证�
 ## 0 优先级与适用边界
 
 - **规则优先级：** 用户本轮明确指示 > 项目 README、CLAUDE 与实际设置 > 本 skill > references 与 templates。模板示例不能覆盖已确认的研究设定。
-- **分工：** 本 skill 管目录、入口、清单、do 结构、迁移、归档和清理；计算、结果汇报和导出按 empirical-research。下文“共享规则”与该 skill 的同名一节保持一致，修改时两边同步。
+- **分工：** 本 skill 管目录、入口、清单、do 结构、迁移、归档和清理（do 写法按 stata-do-my-style）；计算、结果汇报和导出按 empirical-research。下文“共享规则”与该 skill 的同名一节保持一致，修改时两边同步。
 - **整理不改研究口径：** 不改变 Y、处理变量、样本、控制变量时点、FE、聚类、阈值、种子或结果解释；初始化和整理也不授权运行新实证、重估或导出。
 
 ## 1 执行前确定范围
@@ -29,7 +29,7 @@ description: "实证项目初始化与文件管理（int/init）：新建实证�
   data/raw/                         # 外部原始数据，只读
   data/temp/                        # 候选/现用面板、共享缓存、样本ID、底表、估计对象
   data/final/                       # 现用最终面板及明确冻结版本
-  do/                               # 平铺：现用 .do，可选一个 README.md 逐表入口
+  do/                               # 平铺：现用主 do（及可选数据处理通用库 do）
   code/                             # 平铺：现用 Python/R 代码和必要配置，两位序号开头
   result/table/                     # 用户采用且授权导出的排版表
   result/figure/                    # 用户采用的当前最终图
@@ -62,33 +62,21 @@ description: "实证项目初始化与文件管理（int/init）：新建实证�
 - 通用实证规则按需复制 [templates/CLAUDE_empirical_analysis.md](templates/CLAUDE_empirical_analysis.md)；文献卡片用 [templates/paper-card.md](templates/paper-card.md)，存 `paper/`。
 - README 只回答：当前权威稿是哪份、论文表怎么跑、特征化事实怎么跑、已采用表图在哪、上游重建与环境要求在哪；并用真实本地 Markdown 链接指向文件管理包里的两张清单。代码/数据流水线写进 CLAUDE.md；明细放清单，不建多份“入口/导航v02”。
 
-### 3.3 逐表 do 结构（仅研究版本确认或用户明确要求 Stata/do 时生成）
+### 3.3 最终 do 结构（仅研究版本确认或用户明确要求 Stata/do 时生成）
 
-触发条件见 S7，写法与验收见 S8。
+触发条件见 S7，写法与验收见 S8 和 [stata-do-my-style](../stata-do-my-style/SKILL.md)。
 
 ```text
-00_导入原始数据与构建.do
-01_统一设置.do
-02_变量定义.do
-03_描述性统计.do
-04_逐步加入控制变量的基准回归.do
-05_具体检验主题.do
-……
-主程序.do        # 可选，只按顺序调用，不占 00
+do/
+  YYYYMMDD_论文名.do            # 主 do：导入 → 处理 → 合并 → 基准 → 描述统计 → 异质性 → 机制 → 稳健性
+  YYYYMMDD_数据处理通用库.do     # 可选：多个项目共用的原始库清洗（CSMAR 等），已有就引用不重写
 ```
 
-- 文件序号是工作顺序，**不等于论文表号**；每个分析 do 在文件头和图表对应清单登记真实表号（DO_STEM 与 TABLE_ID 分别填写）。文件名为“两位序号_具体主题”，不能只写编号、T 编号、表4 或机制一。不得再生成 `00_统一设置`、`00_主程序`。
-- 每张论文表一个现用 do，含该表全部列、真实样本记录、保存估计及获授权的导出段，同表模型不分散。改名同步主程序、生成/打包脚本及两张清单。
-- **01 统一设置**集中：REPRO、ROOT、DATA、RAW、TEMP、FINAL、DO、CODE、RESULT、TABLE、FIGURE、LOGROOT、年份、控制变量 `$CONTROLS`、PANEL、面板键、FE、聚类、回归公共选项、统一标签、`ensure_dir`、`next_log`、`save_sample_ids` 等共用程序（01 开头 `program drop _all`，全程不用 capture）。01 不 use 数据、不回归、不清空数据、不重置种子；随机算法使用已约定种子并显式记录。
-- **00 构建**先读 01，再从已登记来源导入，中间件写 TEMP；合成 DTA 集中 data/temp 并登记状态，另获冻结授权才写 final；PANEL 显式指向真实输入或未占用的新输出，不覆盖既有版本。00 模板中的 MAIN_INPUTS、KEY_VARIABLE_FORMULAS 按真实项目填写，删除不适用示例。
-- **路径与阶段**：
-  - `TASK_NAME_DATE`：原测试证据包名（继续、采用、重跑都沿用）。
-  - `TASK_DATA_PATH`：data/temp 内已登记的真实数据位置，TEMP 指向它。
-  - `TASK_STAGE`：trial 或 adopted，只控制 DO/CODE/RESULT/TABLE/FIGURE 指向测试包还是正式目录。
-  - `LOGROOT`：任何阶段都指原测试包。
-  - `PANEL_RELATIVE_PATH`：实际读取或新建的面板，不固定绑定 final。
-  - 未采用但要求核对时，所有 do 和本轮 01 生成在同一测试包，把首个 `do` 语句改为该包内 01 的真实绝对路径，禁止加载正式目录旧设置；运行前逐项展开检查。
-- `templates/do/05–09` 及相关系数模板按论文实际表数拆取。02 变量定义表若为人工文字须标明；由代码产生则配置 VARIABLE_DEFINITION_CODE_BLOCKS，不伪造结果。为 01 提供真实面板键、FE、聚类和控制列表；非 e(sample) 估计器按接口取真实行。存在未替换占位符或缺输入的文件标“未就绪”，不能报告可一键复现。
+- 模板：[templates/do/论文名_主程序.do](templates/do/论文名_主程序.do)。按论文实际表数增删小节，不造空节；不再生成 00/01/02… 逐表 do、`01_统一设置.do` 或只负责调用的主程序。
+- 论文表号写进对应小节书签，如 `**# 3.1基准回归（表3）`、`**#4.2.1外部监督————媒体关注（表6）`；图表对应清单的“入口 do”登记“主 do + 书签名”。
+- **文件头路径段**：`local mainDir` + `cap mkdir` + `global path1 / DR / DT / DF`。未采用时 path1 指原测试包，DR 指 data/raw（或共享原始库），DT 指 `TASK_DATA_PATH` 对应的 data/temp 位置，DF 指测试包；采用后再按授权改到 do/、result/table/。
+- 原始数据只读：从 DR 导入，清洗后的中间 dta 和合并面板 `save` 到 DT；不覆盖 raw 和已冻结的 final。控制变量库等外部共享 dta 直接 `cd` 到其真实路径后 merge，不复制。
+- 仍有占位符或缺输入的 do 标“未就绪”，不能报告可一键复现。
 
 ### 3.4 运行产物落位
 
@@ -117,7 +105,7 @@ description: "实证项目初始化与文件管理（int/init）：新建实证�
 
 ## 6 验证与报告
 
-- 生成后检查占位符、路径、逐表调用顺序和未就绪内容。
+- 生成后检查占位符、路径、`**#` 书签编号和未就绪内容。
 - 可运行 `scripts/check_project_layout.py 项目路径` 做只读结构检查：它检查初稿中的任务包/非稿件材料并提示需人工确认的项，不能判断 Word 作者、不能证明写入初稿已获授权、不验证实证结果、不删除文件。须保留相对布局的历史包用重复的 `--legacy-bundle data/raw/准确包名`、`data/temp/准确包名` 或 `code/准确模块包` 列出，不能排除整个 data/raw、data/temp 或 code。未使用的目录不必为通过检查而创建。
 - 模板或资料缺失时保留已完成工作并报告具体缺口，不凭空声称复现。
 
@@ -134,37 +122,30 @@ description: "实证项目初始化与文件管理（int/init）：新建实证�
 | `{{MANAGEMENT_TASK}}` | 唯一文件管理包名 `YYYYMMDD_主题` | 20261010_文件管理 |
 | `{{TASK_DATA_PATH}}` | data/temp 内已登记的真实数据位置 | data/temp/20261010_VC获投企业家数 |
 | `{{PANEL_RELATIVE_PATH}}` | 实际输入或本阶段新面板的相对路径 | data/temp/20261010_采用项/分析面板.dta |
-| `{{DO_STEM}}` | 两位工作序号_具体主题（不含 .do），用于唯一日志名 | 05_司法渠道机制 |
-| `{{TABLE_ID}}` | 实际论文表号，不由 DO_STEM 推定 | 07 |
-| `{{SELECTED_DO_BLOCKS}}` | 主程序实际调用列表 | 00 → 02 → 03 → 后续表 |
-| `{{TABLE_DO_LIST}}` | 实际表号与 do 对应表，不固定生成八个模块 | — |
+| `{{TABLE_ID}}` | 实际论文表号，写进主 do 对应小节书签 | 07 |
+| `{{TABLE_DO_LIST}}` | 实际表号与主 do 书签对应表 | 表3 → `**# 3.1基准回归（表3）` |
 | `{{DEP_VAR}}` / `{{DEP_VAR_DESC}}` | 主被解释变量及含义 | CVaR5 / 条件在险价值 |
 | `{{DEP_VAR_CONSTRUCT}}` / `{{DEP_VAR_SOURCE}}` | 构造方式与来源 | 分位数回归法 / CSMAR 日度 |
 | `{{DEP_VAR_LIST}}` | 全部被解释变量（空格分隔） | VaR5 CVaR5 NCSKEW DUVOL |
 | `{{INDEP_VAR}}` / `{{INDEP_VAR_DESC}}` / `{{INDEP_VAR_CONSTRUCT}}` | 核心解释变量、含义、构造 | L_digital_ratio / 滞后一期数智化 / 文本分析 |
 | `{{EXPECTED_SIGN}}` / `{{EXPECTED_SIGN_REASON}}` | 预期方向及理由 | < 0 / 数智化降低尾部风险 |
 | `{{CONTROL_VARS}}` | 控制变量表（表格行） | — |
-| `{{CONTROLS_LIST}}` | 控制变量列表，写入 01 的 `global CONTROLS` | L_size L_lev L_roa L_Growth |
-| `{{CONTROLS_MACRO}}` | 旧项目控制宏；迁移时核对后统一为 CONTROLS | global CONTROLS size lev roa |
+| `{{CONTROLS_LIST}}` | 控制变量列表，写入主 do 的 `global 控制变量`（缩尾后 `_w` 名） | LEV_w SIZE_w ROA_w AGE_w |
+| `{{CONTROLS_RAW}}` | 需缩尾的控制变量原名 | LEV SIZE ROA AGE |
+| `{{CONTROLS_DATA_DIR}}` / `{{CONTROLS_DATA_FILE}}` | 已有公司层面控制变量库的真实目录与 dta 名 | F:/【20250807】常见控制变量合集/公司特征/dta |
+| `{{DEP_VAR_SOURCE_FILE}}` / `{{INDEP_VAR_SOURCE_FILE}}` | 主 do 导入的原始文件（相对 `$DR`） | FS_Combas.xlsx |
 | `{{ENTITY_VAR}}` / `{{ENTITY_DESC}}` | 面板个体变量及描述 | stkcd / A 股上市公司 |
 | `{{CLUSTER_LEVEL}}` | 聚类层级 | 企业 |
 | `{{ENTITY_FE}}` | 个体固定效应层级（CLAUDE 模板基准模型用） | 企业 |
 | `{{TASK_CATEGORY}}` | 任务包实际类别，七类之一 | 机制 |
 | `{{YEAR_MIN}}` / `{{YEAR_MAX}}` | 样本年份 | 2012 / 2024 |
-| `{{SAMPLE_ID_VARS}}` | 唯一识别实际观测的键 | stkcd year |
-| `{{SAMPLE_CAPTURE_COL1}}` / `_COL2` / `_MODEL` | 估计后立即保存真实样本 ID 的代码 | 见 file-management 参考 |
 | `{{MECH_VARS}}` / `{{MECH_ITEMS}}` | 机制变量及检验清单 | VC投资强度 GDP波动率 |
 | `{{HETERO_VARS}}` / `{{HETERO_ITEMS}}` | 异质性分组变量及清单 | 市场化指数 社会资本 |
 | `{{ALT_DEP_VAR}}` / `{{ALT_INDEP_VAR}}` / `{{ALT_SAMPLE}}` / `{{ALT_MODEL}}` | 稳健性替换项 | VaR5 / digital_ratio_alt / 排除2020年 / 双向聚类 |
 | `{{PLACEBO_METHOD}}` / `{{IV_DESC}}` | 安慰剂方法、工具变量 | 随机置换 / 政策冲击 IV |
-| `{{LAG_VARS}}` | 需生成滞后项的变量 | Growth SOE Dual TobinQ |
-| `{{MECHANISM_CODE_BLOCKS}}` 等 `*_CODE_BLOCKS` | 机制、稳健性、异质性、进一步分析、变量定义代码块 | 从手册派生 |
 | `{{CURRENT_MANUSCRIPT}}` | 用户确认的现用稿件及路径 | — |
 | `{{FACTS_ENTRY}}` | 特征化事实 Python 入口及清单位置；无则写不适用 | — |
 | `{{ENVIRONMENT}}` | Stata/Python 及包版本、运行方式、资源要求 | — |
-| `LOAD_MAIN_DATA`、`MERGE_BLOCKS`、`LAG_VAR_GENERATION` | 00 模板：读主数据、逐个 merge（每个后 tab _merge）、用 L. 算子生成滞后 | — |
-| `DROP_FINANCE`、`DROP_ST`、`DROP_MISSING`、`SAMPLE_CONDITION` | 00 模板样本筛选；金融/ST 仅上市公司适用，不适用删除该段；SAMPLE_CONDITION 如 `& inrange(year, 2012, 2024)` | — |
-| `STATA_VERSION`、`TIME_VAR`、`FE_VARS`、`CLUSTER_VAR`、`HDFE_OPTIONS`、`COEF_LABELS`、`SHARED_SETUP_CODE`、`PANEL_VALIDATION_CODE`、`MAIN_INPUTS`、`KEY_VARIABLE_FORMULAS` | 01/00 模板的设置项，从真实研究设定填写；空选项可明确留空，必要信息缺失标“未就绪” | — |
 
 ---
 
@@ -230,25 +211,23 @@ description: "实证项目初始化与文件管理（int/init）：新建实证�
 
 ### S8 最终 do 写作与验收（仅核对阶段适用）
 
-- **参考表头**：每份 do 在首个书签和命令前用 `/* ... */` 写 `project`、`Author`、`E-email`、`Creation Date`、`Modification Date`、`Do-file version`、`References`、`Input`、`Output`；输入输出写本文件实际依赖与产物；未知项写“未记录”，不抄示例个人信息，不把磁盘时间当原始创建日期；改动后更新修改日期，并区分文档整理与估计口径变化。
-- **阅读路线**：表头后写目的、必要输入、主要步骤、关键公式与单位、样本限制、关键输出和单独运行方法。
-- **原生书签**：每个实际工作部分前独占一行 `**# 01 中文小标题`，长文件用 `**# 04.1 合并某来源` 区分来源、模型组或表；单文件内编号唯一并按执行顺序递增；`* === [书签]` 等普通注释不算。
-- **口径可追踪**：计算旁写公式、单位、时点、缺失处理和样本限制；合并旁写来源文件、键、未匹配处理；多来源补值写明优先级。关键口径不藏进通用循环、动态生成代码或另一门语言。路径与共用控制取自统一设置。
-- **独立运行**：每个分析 do 先用绝对路径 `do` 读取 `01_统一设置.do`，再显式 `use`/`import` 自己的输入；不依赖主程序残留的数据、宏、frame、postfile 句柄、program 或估计对象；自开自关日志和 postfile。
-- **禁用 preserve/restore**：数据切换写成 `save "$TEMP/阶段数据.dta"` + `use`。允许 `estimates store/save/restore`，估计对象存 TEMP。e(sample) 由 01 中的共用程序 `frame put` 真实键 → 存 TEMP → drop frame。program 内用全局 `$TEMP`，避免外层 local 展开为空把文件写到磁盘根。
-- 通用辅助程序只在 01 实现一次；表专用交互、分组、筛选与差异检验留在对应 do。统一控制变量必须在 01 中有可执行的 `global CONTROLS 真实变量列表`，全项目用 `$CONTROLS` 引用；do 中不使用 capture，目录、日志与文件检查用 01 的 `ensure_dir`、`next_log` 和 mata，FE、聚类、标签、PANEL、辅助程序逐项核对。
-- 不得用历史生成脚本或快照覆盖整改后的现用 do；改名同步调用、导航和图表对应清单，旧入口归档保留原字节。
-- RTF 等导出段默认注释，只有用户授权相应表与格式后才启用。
-- 特征化事实不生成 do；do 只含构建、设置、变量定义、描述统计、回归与识别图、结果提取。
-- **验收**：新开 Stata 会话单独运行某表 do；逐项报告已改、实际运行通过、尚未验证的范围。只改注释时逐行核对可执行命令不变；静态检查、字节检查不能称为复现，发现遗漏不能沿用上轮“已完成”。可读性测试：不依赖本次对话的读者能答出 Y 怎么算、控制变量是什么、样本怎样筛、最终读哪份 DTA。
+- **写法以 [stata-do-my-style](../stata-do-my-style/SKILL.md) 为准**：一个项目一个主 do（模板见 empirical-project-init 的 `templates/do/论文名_主程序.do`；多个项目共用的原始库清洗可另放一个数据处理 do），从原始数据导入写起，按“导入数据 → 处理数据 → 回归分析 → 异质性 → 机制 → 稳健性”用五行横幅和 `**#` 书签分节；路径用 `$path1 $DR $DT $DF`，控制变量用 `global 控制变量`，回归用 `reghdfe` + `est store` + `esttab`。
+- **不写**：`program define` 助手（ensure_dir、next_log、start_run、record_result、save_sample_ids 等）、mata/frame/postfile、`01_统一设置.do` 加逐表拆分和只会挨个 `do` 的主程序、`isid`/`assert` 检查墙、冻结输入加 sNNN 样本标记、文件头后的目的/步骤/时点/边界大段说明、在 do 里保存 .ster、b/V 或 Python 参考差值。
+- **口径照样可追踪**：Y、X、控制、样本筛选、FE、聚类与 Python 确认版一致。变量构造写在 `/*======变量名========*/` 小标题下，旁边用 `//` 注明原始字段含义、公式、单位和来源；merge 写清来源文件与键，后跟 `drop if _merge==2`、`drop _merge`，必要时 `tab _merge` 的结果用 `//` 贴在下面。只有 Stata 做不了的步骤（如文本分析、爬虫）才导入 Python 生成的中间文件，并注释生成脚本的位置。
+- **分节可单独运行**：每个分析小节以 `cd $DT` + `use 面板,clear` 开头，运行文件头路径段后即可单独运行该节；数据切换写成 `save` + `use`，不用 preserve/restore。
+- **样本**：基准第 4 列后 `gen sample=1 if e(sample)==1` 并存回面板，后续统一 `if sample==1`；Python 侧保存的逐模型真实样本 ID 用于核对，不写进 do。
+- **结果核对在 do 外完成**：运行后读取 log 与 esttab 输出，与 Python 底表逐项比对 b、SE、N、簇数、R²，差异记在原测试包的核对说明里。
+- RTF 等导出段默认注释，只有用户授权相应表与格式后才启用；特征化事实不生成 do。
+- 不得用历史生成脚本或快照覆盖整改后的现用 do；改名同步图表对应清单，旧版归档保留原字节。
+- **验收**：新开 Stata 会话从头运行主 do（或运行路径段后单独运行对应小节）；逐项报告已改、实际运行通过、尚未验证的范围。只改注释时逐行核对可执行命令不变；静态检查不能称为复现。可读性测试：不依赖本次对话的读者能从 do 里看出原始数据从哪来、Y 怎么算、控制变量是什么、样本怎样筛。
 
 ### S9 默认研究设定（项目另有要求或用户说明时以其为准）
 
 - **基准回归默认四列**：(1) 无控制无FE (2) 有控制无FE (3) 无控制有FE (4) 有控制有FE（首选）；不同项目的列数以稿件和项目 CLAUDE.md 为准。
-- **统一样本**：各列及后续机制、稳健、异质和描述性统计默认使用同一 `_sample == 1`（第 4 列所需全部变量非缺失）；偏离由用户说明，并在表注和图表对应清单登记。Python 估计同样以此为默认样本，并照常保存每个模型的真实样本 ID。
+- **统一样本**：各列及后续机制、稳健、异质和描述性统计默认使用同一样本（第 4 列的估计样本，do 中为 `sample == 1`）；偏离由用户说明，并在表注和图表对应清单登记。Python 估计同样以此为默认样本，并照常保存每个模型的真实样本 ID。
 - **机制检验默认一步法**：只估计 X 对当期机制变量 M 的影响；不把 M 放进基准回归，不做第二步，除非项目另有要求。
-- **控制变量宏**统一为 `global CONTROLS`，全项目引用 `$CONTROLS`。
-- **Stata do 不使用 capture**；目录、日志、文件检查用 01 的助手。
+- **控制变量宏**统一为 `global 控制变量`，全项目引用 `$控制变量`。
+- **Stata do 不用 capture 掩盖报错**；只在文件头建目录时用 `cap mkdir`。
 - **回归表保留常数项和控制变量系数**：esttab 不用 `keep()`、`drop(_cons)`。
 - **样本删除可追溯**：raw 只读；构建面板时可以 drop，但每步前后记录 N 与删除数，登记到项目 CLAUDE.md 的样本筛选表。
 - **不导出 LaTeX**；排版文档按 S7 只在用户明确要求时生成 Word/PDF/RTF。
